@@ -1,11 +1,17 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AuthModal from './AuthModal';
 import logo from "../../imports/1-2.png";
 
 export default function Navigation() {
   const { isAuthenticated, logout } = useAuth();
+const navigate = useNavigate();
+
+const handleLogout = async () => {
+  await logout();
+  navigate('/');
+};
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
 
@@ -46,7 +52,7 @@ export default function Navigation() {
             <div className="flex items-center gap-4">
               {isAuthenticated ? (
                 <button
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="text-gray-600 hover:text-gray-900 transition-colors font-medium"
                 >
                   Log Out
