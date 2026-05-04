@@ -37,7 +37,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
-  updateProfile: (updates: Partial<User>) => void;
+  updateProfile: (updates: Partial<User>) => Promise<void>;	
   savedEstimates: SavedEstimate[];
   symptomHistory: SymptomHistory[];
   saveEstimate: (estimate: Omit<SavedEstimate, 'id' | 'date'>) => { success: boolean; error?: string };
@@ -57,22 +57,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
   async function loadUser() {
-    const { data } = await supabase.auth.getUser()
+    const { data } = await supabase.auth.getUser();
 
     if (data.user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", data.user.id)
+        .single();
+
       const user = {
         id: data.user.id,
         email: data.user.email!,
-        name: data.user.email!.split('@')[0],
-      }
+        name: profile?.full_name || data.user.email!.split("@")[0],
+        insurance: profile?.insurance,
+        zipCode: profile?.zip_code,
+        profilePicture: profile?.profile_picture,
+        lastUpdated: profile?.last_updated,
+      };
 
-      setUser(user)
-      await loadUserData(user.id)
+      setUser(user);
+      await loadUserData(user.id);
     }
   }
 
-  loadUser()
-}, [])
+  loadUser();
+}, []);
 
   const loadUserData = async (userId: string) => {
   const { data: estimates } = await supabase
@@ -93,18 +103,28 @@ const login = async (email: string, password: string) => {
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
-  })
+  });
 
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(error.message);
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", data.user.id)
+    .single();
 
   const user = {
     id: data.user.id,
     email: data.user.email!,
-    name: data.user.email!.split('@')[0],
-  }
+    name: profile?.full_name || data.user.email!.split("@")[0],
+    insurance: profile?.insurance,
+    zipCode: profile?.zip_code,
+    profilePicture: profile?.profile_picture,
+    lastUpdated: profile?.last_updated,
+  };
 
-  setUser(user)
-  await loadUserData(user.id)
+  setUser(user);
+  await loadUserData(user.id);
 };
 
   const signup = async (email: string, password: string, name: string) => {
@@ -197,24 +217,33 @@ const login = async (email: string, password: string) => {
     }
   };
 
-  const updateProfile = (updates: Partial<User>) => {
-    if (!user) return;
+ const updateProfile = async (updates: Partial<User>) => {
+  if (!user) return;
 
-    const updatedUser = { ...user, ...updates, lastUpdated: new Date().toISOString() };
-    setUser(updatedUser);
-    localStorage.setItem('mydentplan_user', JSON.stringify(updatedUser));
-
-    // Also update the user in the users list
-    const storedUsers = localStorage.getItem('mydentplan_users');
-    if (storedUsers) {
-      const users = JSON.parse(storedUsers);
-      const userIndex = users.findIndex((u: any) => u.id === user.id);
-      if (userIndex !== -1) {
-        users[userIndex] = { ...users[userIndex], ...updates };
-        localStorage.setItem('mydentplan_users', JSON.stringify(users));
-      }
-    }
+  const updatedUser = {
+    ...user,
+    ...updates,
+    lastUpdated: new Date().toISOString(),
   };
+
+  setUser(updatedUser);
+
+  const { error } = await supabase
+    .from("profiles")
+    .upsert({
+      id: user.id,
+      full_name: updatedUser.name,
+      email: updatedUser.email,
+      insurance: updatedUser.insurance,
+      zip_code: updatedUser.zipCode,
+      profile_picture: updatedUser.profilePicture,
+      last_updated: updatedUser.lastUpdated,
+    });
+
+  if (error) {
+    console.error("Error updating profile:", error.message);
+  }
+};
 
   const deleteEstimate = (id: string) => {
     if (!user) return;
