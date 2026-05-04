@@ -444,8 +444,9 @@ return (
                   </div>
                 )}
               </div>
+
 {/* Find a Dentist */}
-<div className="bg-white rounded-2xl shadow-lg p-8">
+  <div className="bg-white rounded-2xl shadow-lg p-8">
 
   <div className="flex items-center justify-between mb-4">
     <h2 className="text-2xl font-semibold text-gray-900">
@@ -478,7 +479,9 @@ return (
   </div>
 
 </div>
-             
+
+</div> {/* END Main Content */}
+
             {/* Profile Sidebar */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-2xl shadow-lg p-8 sticky top-32">
