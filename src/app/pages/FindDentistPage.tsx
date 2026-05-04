@@ -6,6 +6,7 @@ export default function FindDentistPage() {
 
   const [zip, setZip] = useState(user?.zipCode || "");
   const [insurance, setInsurance] = useState(user?.insurance || "");
+const [searched, setSearched] = useState(false);
 
   const dentists = [
     {
@@ -30,9 +31,10 @@ export default function FindDentistPage() {
 
   const [results, setResults] = useState(dentists);
 
-  const handleSearch = () => {
-    setResults(dentists);
-  };
+ const handleSearch = () => {
+  setSearched(true);
+  setResults(dentists);
+};
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -72,7 +74,14 @@ export default function FindDentistPage() {
             </div>
           </div>
 
-          <div className="space-y-4">
+{searched && (
+  <p className="text-sm text-gray-500 mb-4">
+    Showing dentists near {zip || "your area"}
+    {insurance ? ` who may accept ${insurance}` : ""}.
+  </p>
+)}
+
+<div className="space-y-4">
             {results.map((dentist, i) => (
               <div
                 key={i}
