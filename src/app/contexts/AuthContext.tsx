@@ -72,8 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name: profile?.full_name || data.user.email!.split("@")[0],
         insurance: profile?.insurance,
         zipCode: profile?.zip_code,
-        profilePicture: profile?.profile_picture,
-        lastUpdated: profile?.last_updated,
+        profilePicture: profile?.avatar_url,
       };
 
       setUser(user);
@@ -119,8 +118,7 @@ const login = async (email: string, password: string) => {
     name: profile?.full_name || data.user.email!.split("@")[0],
     insurance: profile?.insurance,
     zipCode: profile?.zip_code,
-    profilePicture: profile?.profile_picture,
-    lastUpdated: profile?.last_updated,
+    profilePicture: profile?.avatar_url,
   };
 
   setUser(user);
@@ -236,8 +234,7 @@ const login = async (email: string, password: string) => {
       email: updatedUser.email,
       insurance: updatedUser.insurance,
       zip_code: updatedUser.zipCode,
-      profile_picture: updatedUser.profilePicture,
-      last_updated: updatedUser.lastUpdated,
+      avatar_url: updatedUser.profilePicture,
     });
 
   if (error) {
