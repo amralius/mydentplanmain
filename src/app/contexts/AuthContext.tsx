@@ -54,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [savedEstimates, setSavedEstimates] = useState<SavedEstimate[]>([]);
   const [symptomHistory, setSymptomHistory] = useState<SymptomHistory[]>([]);
+const [loading, setLoading] = useState(true);
 
   useEffect(() => {
   async function loadUser() {
@@ -78,6 +79,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(user);
       await loadUserData(user.id);
     }
+useEffect(() => {
+  async function loadUser() {
+    const { data } = await supabase.auth.getUser();
+
+    if (data.user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", data.user.id)
+        .single();
+
+      const user = {
+        id: data.user.id,
+        email: data.user.email!,
+        name: profile?.full_name || data.user.email!.split("@")[0],
+        insurance: profile?.insurance,
+        zipCode: profile?.zip_code,
+        profilePicture: profile?.avatar_url,
+      };
+
+      setUser(user);
+      await loadUserData(user.id);
+    }
+
+    setLoading(false); // 🔥 ADD THIS
+  }
+
+  loadUser();
+}, []);
   }
 
   loadUser();
@@ -283,6 +313,7 @@ const login = async (email: string, password: string) => {
       value={{
         user,
         isAuthenticated: !!user,
+	loading, // 🔥 ADD THIS
         login,
         signup,
         logout,

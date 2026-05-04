@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import ConfirmModal from '../components/ConfirmModal';
 
 export default function DashboardPage() {
-  const { user, isAuthenticated, savedEstimates, symptomHistory, updateProfile, deleteEstimate, deleteSymptomCheck, updateEstimateStatus, updateSymptomStatus } = useAuth();
+  const { user, isAuthenticated, loading, savedEstimates, symptomHistory, updateProfile, deleteEstimate, deleteSymptomCheck, updateEstimateStatus, updateSymptomStatus } = useAuth();
   const navigate = useNavigate();
 
   const [editingProfile, setEditingProfile] = useState(false);
@@ -19,12 +19,6 @@ export default function DashboardPage() {
   });
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/');
-    }
-  }, [isAuthenticated, navigate]);
-
-  useEffect(() => {
     if (user) {
       setProfileName(user.name);
       setProfileInsurance(user.insurance || '');
@@ -32,9 +26,12 @@ export default function DashboardPage() {
     }
   }, [user]);
 
-  if (!isAuthenticated || !user) {
-    return null;
-  }
+ if (loading) return null;
+
+if (!user) {
+  navigate("/");
+  return null;
+}
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
