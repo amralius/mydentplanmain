@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { useLocation } from "react-router-dom";
 
 declare global {
   interface Window {
@@ -9,8 +10,11 @@ declare global {
 
 export default function FindDentistPage() {
   const { user } = useAuth();
+const location = useLocation();
+const params = new URLSearchParams(location.search);
+const zipFromURL = params.get("zip");
 
-  const [zip, setZip] = useState(user?.zipCode || "");
+  const [zip, setZip] = useState(zipFromURL || user?.zipCode || "");
   const [insurance, setInsurance] = useState(user?.insurance || "");
   const [results, setResults] = useState<any[]>([]);
   const [searched, setSearched] = useState(false);
