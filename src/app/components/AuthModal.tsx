@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 interface AuthModalProps {
@@ -16,6 +17,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signup' }: A
   const [loading, setLoading] = useState(false);
 
   const { login, signup } = useAuth();
+const navigate = useNavigate();
 
   if (!isOpen) return null;
 
@@ -26,14 +28,16 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signup' }: A
 
     try {
       if (mode === 'login') {
-        await login(email, password);
-      } else {
+  await login(email, password);
+  navigate("/dashboard"); // 🔥 ADD THIS
+} else {
         if (!name.trim()) {
           setError('Please enter your name');
           setLoading(false);
           return;
         }
         await signup(email, password, name);
+navigate("/dashboard"); // 🔥 ADD THIS
       }
       onClose();
       setEmail('');
