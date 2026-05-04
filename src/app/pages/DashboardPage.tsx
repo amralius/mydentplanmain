@@ -26,12 +26,11 @@ export default function DashboardPage() {
     }
   }, [user]);
 
- if (loading) return null;
-
-if (!user) {
-  navigate("/");
-  return null;
-}
+useEffect(() => {
+  if (!loading && !user) {
+    navigate("/");
+  }
+}, [loading, user, navigate]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -124,13 +123,16 @@ if (!user) {
   const selectedItem = allHistory.find(item => item.id === selectedHistoryId);
   const currentPlan = selectedItem && selectedItem.type === 'symptom' ? selectedItem : null;
 
-  const mockDentists = [
-    { name: 'Dr. Sarah Chen', specialty: 'General Dentistry', distance: '0.8 miles', rating: 4.9 },
-    { name: 'Dr. Michael Rodriguez', specialty: 'Cosmetic Dentistry', distance: '1.2 miles', rating: 4.8 },
-    { name: 'Dr. Emily Thompson', specialty: 'Pediatric Dentistry', distance: '1.5 miles', rating: 4.9 },
-  ];
+const mockDentists = [
+  { name: 'Dr. Sarah Chen', specialty: 'General Dentistry', distance: '0.8 miles', rating: 4.9 },
+  { name: 'Dr. Michael Rodriguez', specialty: 'Cosmetic Dentistry', distance: '1.2 miles', rating: 4.8 },
+  { name: 'Dr. Emily Thompson', specialty: 'Pediatric Dentistry', distance: '1.5 miles', rating: 4.9 },
+];
 
-  return (
+if (loading) return null;
+if (!user) return null;
+
+return (
     <div className="min-h-screen bg-gray-50">
       <div className="pt-32 pb-20">
         <div className="max-w-7xl mx-auto px-6">
@@ -455,9 +457,12 @@ if (!user) {
                   <h2 className="text-2xl font-semibold text-gray-900">
                     Find a Dentist
                   </h2>
-                  <span className="px-3 py-1 bg-blue-100 text-primary rounded-full text-sm font-medium">
-                    Coming Soon
-                  </span>
+                 <button
+  onClick={() => navigate("/find-dentist")}
+  className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+>
+  Find Dentists
+</button>
                 </div>
 
                 <div className="space-y-4 opacity-60">
