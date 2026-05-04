@@ -56,29 +56,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [symptomHistory, setSymptomHistory] = useState<SymptomHistory[]>([]);
 const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-  async function loadUser() {
-    const { data } = await supabase.auth.getUser();
-
-    if (data.user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", data.user.id)
-        .single();
-
-      const user = {
-        id: data.user.id,
-        email: data.user.email!,
-        name: profile?.full_name || data.user.email!.split("@")[0],
-        insurance: profile?.insurance,
-        zipCode: profile?.zip_code,
-        profilePicture: profile?.avatar_url,
-      };
-
-      setUser(user);
-      await loadUserData(user.id);
-    }
 useEffect(() => {
   async function loadUser() {
     const { data } = await supabase.auth.getUser();
@@ -104,10 +81,6 @@ useEffect(() => {
     }
 
     setLoading(false); // 🔥 ADD THIS
-  }
-
-  loadUser();
-}, []);
   }
 
   loadUser();
