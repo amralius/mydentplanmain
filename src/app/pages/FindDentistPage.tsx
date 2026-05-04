@@ -28,12 +28,16 @@ export default function FindDentistPage() {
     },
   ];
 
+  const [results, setResults] = useState(dentists);
+
+  const handleSearch = () => {
+    setResults(dentists);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="pt-32 pb-20">
         <div className="max-w-7xl mx-auto px-6">
-          
-          {/* Header */}
           <div className="mb-8">
             <h1 className="text-5xl font-semibold text-gray-900 mb-2">
               Find a Dentist
@@ -43,7 +47,6 @@ export default function FindDentistPage() {
             </p>
           </div>
 
-          {/* Search Card */}
           <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
             <div className="grid md:grid-cols-3 gap-4">
               <input
@@ -61,6 +64,7 @@ export default function FindDentistPage() {
               />
 
               <button
+                onClick={handleSearch}
                 className="bg-primary text-white rounded-xl px-6 py-3 font-medium hover:bg-blue-700 transition"
               >
                 Search
@@ -68,24 +72,17 @@ export default function FindDentistPage() {
             </div>
           </div>
 
-          {/* Results */}
           <div className="space-y-4">
-            {dentists.map((dentist, i) => (
+            {results.map((dentist, i) => (
               <div
                 key={i}
                 className="bg-white p-6 rounded-2xl shadow hover:shadow-md transition"
               >
                 <div className="flex justify-between items-center">
                   <div>
-                    <h2 className="text-lg font-semibold">
-                      {dentist.name}
-                    </h2>
-                    <p className="text-gray-600">
-                      {dentist.specialty}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {dentist.distance}
-                    </p>
+                    <h2 className="text-lg font-semibold">{dentist.name}</h2>
+                    <p className="text-gray-600">{dentist.specialty}</p>
+                    <p className="text-sm text-gray-500">{dentist.distance}</p>
                   </div>
 
                   <div className="text-yellow-500 font-medium">
@@ -99,7 +96,6 @@ export default function FindDentistPage() {
               </div>
             ))}
           </div>
-
         </div>
       </div>
     </div>
