@@ -29,13 +29,15 @@ export default function FindDentistPage() {
   const [zip, setZip] = useState(zipFromURL || user?.zipCode || "");
   const [insurance, setInsurance] = useState(user?.insurance || "");
   const [results, setResults] = useState<DentistResult[]>([]);
-  const [favorites, setFavorites] = useState<DentistResult[]>([]);
+  const [favorites, setFavorites] = useState<DentistResult[]>(() => {
+    const saved = localStorage.getItem("savedDentists");
+    return saved ? JSON.parse(saved) : [];
+  });
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [ratingOnly, setRatingOnly] = useState(false);
 
   const mapRef = useRef<HTMLDivElement | null>(null);
-
   const latestSymptoms = symptomHistory?.[0]?.symptoms || [];
 
   const getDentistKeyword = () => {
@@ -182,10 +184,8 @@ export default function FindDentistPage() {
               return;
             }
 
-            const topPlaces = places.slice(0, 8);
-
             const formatted = await Promise.all(
-              topPlaces.map(async (place) => {
+              places.slice(0, 8).map(async (place) => {
                 if (place.geometry?.location) {
                   new window.google.maps.Marker({
                     position: place.geometry.location,
@@ -234,8 +234,11 @@ export default function FindDentistPage() {
         handleSearch();
       }, 500);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem("savedDentists", JSON.stringify(favorites));
+  }, [favorites]);
 
   const toggleFavorite = (dentist: DentistResult) => {
     const alreadySaved = favorites.some((fav) => fav.placeId === dentist.placeId);
