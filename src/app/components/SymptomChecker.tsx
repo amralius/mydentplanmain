@@ -125,10 +125,10 @@ export default function SymptomChecker({ onEstimateCost }: SymptomCheckerProps) 
   };
 
   const handleSaveSymptomCheck = () => {
-    if (!isAuthenticated) {
-      setShowAuthModal(true);
-      return;
-    }
+   if (!isAuthenticated) {
+  setShowAuthModal(true);
+  return;
+}
 
     const result = saveSymptomCheck({
       teeth: selectedTeeth,
@@ -1228,6 +1228,11 @@ export default function SymptomChecker({ onEstimateCost }: SymptomCheckerProps) 
                 ← Adjust Details
               </button>
             </div>
+<AuthModal
+  isOpen={showAuthModal}
+  onClose={() => setShowAuthModal(false)}
+  initialMode="signup"
+/>
           </div>
         </div>
       </div>
