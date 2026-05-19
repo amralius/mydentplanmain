@@ -76,8 +76,27 @@ const TREATMENT_CATEGORIES = {
   'Advanced': ['Implant', 'Wisdom Tooth Removal', 'Braces/Invisalign', 'Whitening'],
 };
 
+const TREATMENT_DESCRIPTIONS: Record<string, string> = {
+  'Dental Exam': 'Routine evaluation of teeth and oral health.',
+  'Emergency Exam': 'Focused exam for urgent pain, swelling, or injury.',
+  'X-rays': 'Images used to identify issues beneath the surface.',
+  'Consultation': 'Visit to discuss concerns and possible treatment options.',
+  'Cleaning': 'Removal of plaque and tartar buildup.',
+  'Deep Cleaning': 'Gum-focused cleaning below the gumline.',
+  'Fluoride Treatment': 'Protective treatment for sensitivity or cavity prevention.',
+  'Filling': 'Repair for a cavity or small damaged area of a tooth.',
+  'Crown': 'Cap used to protect or restore a weakened tooth.',
+  'Root Canal': 'Treatment for infected or inflamed tooth pulp.',
+  'Extraction': 'Removal of a tooth when it cannot be saved.',
+  'Implant': 'Replacement tooth root and crown for a missing tooth.',
+  'Wisdom Tooth Removal': 'Removal of one or more wisdom teeth.',
+  'Braces/Invisalign': 'Orthodontic treatment to align teeth.',
+  'Whitening': 'Cosmetic treatment to brighten tooth shade.',
+};
+
 export default function EstimateCard({ onSaveClick, preSelectedTreatments = [] }: EstimateCardProps) {
   const [selectedTreatments, setSelectedTreatments] = useState<string[]>(preSelectedTreatments);
+  const [treatmentSearch, setTreatmentSearch] = useState('');
   const [insurance, setInsurance] = useState('');
   const [insuranceSearch, setInsuranceSearch] = useState('');
   const [metDeductible, setMetDeductible] = useState(false);
@@ -117,6 +136,7 @@ export default function EstimateCard({ onSaveClick, preSelectedTreatments = [] }
 
   const resetForm = () => {
     setSelectedTreatments([]);
+    setTreatmentSearch('');
     setInsurance('');
     setInsuranceSearch('');
     setMetDeductible(false);
@@ -186,6 +206,20 @@ export default function EstimateCard({ onSaveClick, preSelectedTreatments = [] }
     provider.toLowerCase().includes(insuranceSearch.toLowerCase())
   );
 
+  const filteredTreatmentCategories = Object.entries(TREATMENT_CATEGORIES)
+    .map(([category, treatments]) => ({
+      category,
+      treatments: treatments.filter((treatment) => {
+        const query = treatmentSearch.trim().toLowerCase();
+        if (!query) return true;
+        return (
+          treatment.toLowerCase().includes(query) ||
+          TREATMENT_DESCRIPTIONS[treatment]?.toLowerCase().includes(query)
+        );
+      }),
+    }))
+    .filter(({ treatments }) => treatments.length > 0);
+
   const handleTreatmentToggle = (treatment: string) => {
     setSelectedTreatments(prev =>
       prev.includes(treatment)
@@ -240,6 +274,11 @@ export default function EstimateCard({ onSaveClick, preSelectedTreatments = [] }
   };
 
   const estimate = calculateEstimate();
+  const progressSteps = [
+    { label: 'Select treatments', complete: selectedTreatments.length > 0 },
+    { label: 'Add insurance', complete: Boolean(insurance) },
+    { label: 'Review estimate', complete: Boolean(estimate) },
+  ];
 
   const handleSaveEstimate = () => {
     if (!estimate) return;
@@ -272,13 +311,42 @@ export default function EstimateCard({ onSaveClick, preSelectedTreatments = [] }
   return (
     <>
       <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-8">
+      <div className="mb-8 grid gap-3 sm:grid-cols-3">
+        {progressSteps.map((step, index) => (
+          <div
+            key={step.label}
+            className={`rounded-xl border px-4 py-3 ${
+              step.complete
+                ? 'border-primary bg-primary/5 text-primary'
+                : 'border-gray-200 bg-gray-50 text-gray-500'
+            }`}
+          >
+            <div className="text-sm font-semibold">
+              {index + 1} {step.label} {step.complete ? '✓' : ''}
+            </div>
+          </div>
+        ))}
+      </div>
       <div className="grid md:grid-cols-2 gap-8">
         {/* Left Column - Treatment Selection */}
         <div>
           <h3 className="text-xl font-semibold text-gray-900 mb-6">Select Treatments</h3>
 
+          <div className="mb-5">
+            <label className="block text-sm font-semibold text-gray-900 mb-2">
+              Search treatments
+            </label>
+            <input
+              type="text"
+              value={treatmentSearch}
+              onChange={(e) => setTreatmentSearch(e.target.value)}
+              placeholder="Search treatments..."
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+            />
+          </div>
+
           <div className="space-y-6 max-h-[600px] overflow-y-auto pr-2">
-            {Object.entries(TREATMENT_CATEGORIES).map(([category, treatments]) => (
+            {filteredTreatmentCategories.map(({ category, treatments }) => (
               <div key={category}>
                 <h4 className="text-sm font-semibold text-gray-500 mb-3">{category}</h4>
                 <div className="space-y-2">
@@ -298,7 +366,12 @@ export default function EstimateCard({ onSaveClick, preSelectedTreatments = [] }
                           onChange={() => handleTreatmentToggle(treatment)}
                           className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
                         />
-                        <span className="text-gray-700">{treatment}</span>
+                        <span>
+                          <span className="block text-gray-800">{treatment}</span>
+                          <span className="block text-xs leading-5 text-gray-500">
+                            {TREATMENT_DESCRIPTIONS[treatment]}
+                          </span>
+                        </span>
                       </div>
                       <span className="text-sm text-gray-500">
                         ${TREATMENT_COSTS[treatment]?.min.toLocaleString()}–${TREATMENT_COSTS[treatment]?.max.toLocaleString()}
@@ -308,6 +381,11 @@ export default function EstimateCard({ onSaveClick, preSelectedTreatments = [] }
                 </div>
               </div>
             ))}
+            {filteredTreatmentCategories.length === 0 && (
+              <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-5 text-center text-sm text-gray-500">
+                No treatments found. Try another search.
+              </div>
+            )}
           </div>
         </div>
 
@@ -325,7 +403,7 @@ export default function EstimateCard({ onSaveClick, preSelectedTreatments = [] }
                     <span className="text-white text-sm font-semibold">1</span>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">Estimate with Basic Info</h4>
+                    <h4 className="font-semibold text-gray-900 mb-1">Quick Estimate</h4>
                     <p className="text-xs text-gray-600">Get estimated coverage range based on your insurance provider</p>
                   </div>
                 </div>
@@ -408,6 +486,24 @@ export default function EstimateCard({ onSaveClick, preSelectedTreatments = [] }
                 )}
               </div>
 
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-all">
+                <input
+                  type="checkbox"
+                  checked={insurance === 'No Insurance'}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setInsurance('No Insurance');
+                      setInsuranceSearch('');
+                      setShowInsuranceDropdown(false);
+                    } else {
+                      setInsurance('');
+                    }
+                  }}
+                  className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <span className="text-sm text-gray-700">I don't have dental insurance</span>
+              </label>
+
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-2">
                   ZIP Code <span className="text-gray-500 font-normal">(for location-based pricing)</span>
@@ -423,7 +519,7 @@ export default function EstimateCard({ onSaveClick, preSelectedTreatments = [] }
                   maxLength={5}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-sm text-gray-600 mt-2">
                   Helps provide more accurate cost estimates for your area
                 </p>
               </div>
@@ -454,7 +550,7 @@ export default function EstimateCard({ onSaveClick, preSelectedTreatments = [] }
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-semibold text-gray-900">Verify My Insurance</h4>
+                      <h4 className="font-semibold text-gray-900">Real-Time Insurance Verification</h4>
                       <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded">
                         Coming Soon
                       </span>
