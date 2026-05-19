@@ -317,26 +317,45 @@ export default function SymptomChecker({ onEstimateCost }: SymptomCheckerProps) 
 
   if (screen === 'entry') {
     return (
-      <div className="max-w-2xl mx-auto text-center py-20">
-        <div className="mb-8">
-          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-10 h-10 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="max-w-4xl mx-auto text-center py-8">
+        <div className="mb-7">
+          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-5">
+            <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
             </svg>
           </div>
           <h2 className="text-4xl font-semibold text-gray-900 mb-4">
             Check Your Dental Symptoms
           </h2>
-          <p className="text-xl text-gray-600 max-w-xl mx-auto">
-            Select where you feel discomfort and describe your symptoms to get guidance.
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Select where you feel discomfort, describe your symptoms, and receive possible treatment insights and cost estimates.
           </p>
         </div>
+
+        <div className="grid gap-3 md:grid-cols-3 mb-7 text-left">
+          <div className="rounded-2xl border border-green-100 bg-green-50 p-4">
+            <div className="text-sm font-semibold text-green-700 mb-1">Mild sensitivity</div>
+            <p className="text-sm text-green-700">Monitor and compare symptoms if they change.</p>
+          </div>
+          <div className="rounded-2xl border border-yellow-100 bg-yellow-50 p-4">
+            <div className="text-sm font-semibold text-yellow-700 mb-1">Persistent pain</div>
+            <p className="text-sm text-yellow-700">Plan a dentist visit and estimate possible costs.</p>
+          </div>
+          <div className="rounded-2xl border border-red-100 bg-red-50 p-4">
+            <div className="text-sm font-semibold text-red-700 mb-1">Swelling or severe pain</div>
+            <p className="text-sm text-red-700">Seek urgent dental care as soon as possible.</p>
+          </div>
+        </div>
+
         <button
           onClick={() => setScreen('selection')}
           className="px-8 py-4 bg-primary text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg"
         >
-          Start Symptom Check
+          Check My Symptoms
         </button>
+        <p className="mt-4 text-sm text-gray-500">
+          MyDentPlan provides educational guidance and is not a diagnosis.
+        </p>
       </div>
     );
   }
