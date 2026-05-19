@@ -19,9 +19,11 @@ export default function Footer() {
 
   const supportLinks = [
     { to: '/faq', label: 'FAQ' },
+    { to: '/faq#contact-support', label: 'Contact' },
     { to: '/faq', label: 'How estimates work' },
     { to: '/faq', label: 'Coverage questions' },
-    { to: '/faq', label: 'Important disclaimer' },
+    { to: '/privacy', label: 'Privacy Policy' },
+    { to: '/terms', label: 'Terms' },
   ];
 
   return (
@@ -121,9 +123,17 @@ export default function Footer() {
           <p>
             © 2026 MyDentPlan. Estimates are informational and are not a dental diagnosis or coverage guarantee.
           </p>
-          <Link to="/faq" className="text-gray-400 transition-colors hover:text-white">
-            Read important disclaimer
-          </Link>
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
+            <Link to="/privacy" className="text-gray-400 transition-colors hover:text-white">
+              Privacy Policy
+            </Link>
+            <Link to="/terms" className="text-gray-400 transition-colors hover:text-white">
+              Terms
+            </Link>
+            <Link to="/faq#contact-support" className="text-gray-400 transition-colors hover:text-white">
+              Contact
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

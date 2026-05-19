@@ -44,11 +44,15 @@ export default function Home() {
               No Surprises. Just Clarity.
             </div>
             <h1 className="text-6xl font-semibold text-gray-900 tracking-tight max-w-4xl mx-auto leading-tight">
-              Estimate your dental costs before your visit
+              Understand symptoms and estimate dental costs before your visit
             </h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Check symptoms, understand possible treatments, estimate what insurance may cover, and find a dentist when you are ready.
+              Check symptoms, understand treatments, estimate insurance coverage, and find nearby care.
             </p>
+            <div className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-gray-200">
+              <span aria-hidden="true">⏱</span>
+              Takes about 3 minutes
+            </div>
             <div className="flex items-center justify-center gap-4 pt-4">
               <Link
                 to="/symptom-checker"
@@ -88,6 +92,8 @@ export default function Home() {
         </div>
       </section>
 
+      <HowItWorks />
+
       <section id="care-path" className="py-20 bg-white border-y border-gray-100">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-12">
@@ -118,7 +124,7 @@ export default function Home() {
                   {item.step}
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">{item.title}</h3>
-                <p className="text-gray-600 mb-5">{item.description}</p>
+                <p className="text-[17px] leading-7 text-gray-600 mb-5">{item.description}</p>
                 <span className="text-primary font-medium group-hover:text-blue-700">
                   {item.action}
                 </span>
@@ -129,7 +135,6 @@ export default function Home() {
       </section>
 
       <Features />
-      <HowItWorks />
       <Testimonials />
 
       <section className="py-20 bg-gradient-to-r from-primary to-blue-700 text-white">

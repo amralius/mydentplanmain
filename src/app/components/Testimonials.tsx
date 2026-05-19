@@ -42,7 +42,7 @@ export default function Testimonials() {
                   </svg>
                 ))}
               </div>
-              <p className="text-gray-700 mb-6 leading-relaxed">"{testimonial.quote}"</p>
+              <p className="text-[17px] text-gray-700 mb-6 leading-7">"{testimonial.quote}"</p>
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary font-semibold">
                   {testimonial.avatar}
