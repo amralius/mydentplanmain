@@ -33,20 +33,21 @@ export default function Navigation() {
   };
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `transition-colors font-medium ${
-      isActive ? 'text-primary' : 'text-gray-600 hover:text-gray-900'
+    `rounded-full px-4 py-2 text-sm transition-colors font-medium ${
+      isActive ? 'bg-white text-primary shadow-sm' : 'text-gray-600 hover:bg-white/70 hover:text-gray-900'
     }`;
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md border-b border-gray-200 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-2">
-              <img src={logo} alt="MyDentPlan" className="h-11 md:h-14 w-auto" />
+      <nav className="fixed top-0 left-0 right-0 z-50 px-4 pt-4">
+        <div className="max-w-7xl mx-auto rounded-2xl border border-blue-100/80 bg-white/90 px-4 py-3 shadow-[0_14px_40px_rgba(37,99,235,0.10)] backdrop-blur-md">
+          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4">
+            <Link to="/" className="flex min-w-0 items-center gap-2">
+              <img src={logo} alt="MyDentPlan" className="h-10 md:h-12 w-auto" />
             </Link>
 
-            <div className="hidden md:flex items-center gap-8">
+            <div className="hidden lg:flex justify-center">
+              <div className="flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50/90 p-1">
               {navLinks.map((link) => (
                 <NavLink key={link.to} to={link.to} className={linkClass}>
                   {link.label}
@@ -57,13 +58,14 @@ export default function Navigation() {
                   Dashboard
                 </NavLink>
               )}
+              </div>
             </div>
 
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden lg:flex items-center justify-end gap-3">
               {isAuthenticated ? (
                 <button
                   onClick={handleLogout}
-                  className="text-gray-600 hover:text-gray-900 transition-colors font-medium"
+                  className="rounded-full px-5 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors font-medium"
                 >
                   Log Out
                 </button>
@@ -71,13 +73,13 @@ export default function Navigation() {
                 <>
                   <button
                     onClick={() => handleAuthClick('login')}
-                    className="text-gray-600 hover:text-gray-900 transition-colors font-medium"
+                    className="rounded-full px-5 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors font-medium"
                   >
                     Sign In
                   </button>
                   <button
                     onClick={() => handleAuthClick('signup')}
-                    className="px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-blue-700 transition-all font-medium shadow-md hover:shadow-lg"
+                    className="rounded-full bg-primary px-6 py-2.5 text-sm text-white hover:bg-blue-700 transition-all font-medium shadow-md hover:shadow-lg"
                   >
                     Get Started
                   </button>
@@ -88,7 +90,7 @@ export default function Navigation() {
             <button
               type="button"
               onClick={() => setIsMenuOpen((open) => !open)}
-              className="md:hidden p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+              className="lg:hidden justify-self-end p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
               aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
             >
               {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -96,8 +98,8 @@ export default function Navigation() {
           </div>
 
           {isMenuOpen && (
-            <div className="md:hidden mt-4 border-t border-gray-200 pt-4 pb-2">
-              <div className="flex flex-col gap-3">
+            <div className="lg:hidden mt-4 border-t border-gray-200 pt-4 pb-2">
+              <div className="grid gap-2">
                 {navLinks.map((link) => (
                   <NavLink
                     key={link.to}
@@ -123,7 +125,7 @@ export default function Navigation() {
                 {isAuthenticated ? (
                   <button
                     onClick={handleLogout}
-                    className="w-full text-left text-gray-600 hover:text-gray-900 transition-colors font-medium"
+                    className="w-full rounded-xl bg-gray-100 px-5 py-3 text-left text-gray-700 hover:bg-gray-200 transition-colors font-medium"
                   >
                     Log Out
                   </button>
@@ -131,13 +133,13 @@ export default function Navigation() {
                   <>
                     <button
                       onClick={() => handleAuthClick('login')}
-                      className="w-full text-left text-gray-600 hover:text-gray-900 transition-colors font-medium"
+                      className="w-full rounded-xl bg-gray-100 px-5 py-3 text-left text-gray-700 hover:bg-gray-200 transition-colors font-medium"
                     >
                       Sign In
                     </button>
                     <button
                       onClick={() => handleAuthClick('signup')}
-                      className="w-full px-6 py-3 bg-primary text-white rounded-lg hover:bg-blue-700 transition-all font-medium shadow-md"
+                      className="w-full px-6 py-3 bg-primary text-white rounded-xl hover:bg-blue-700 transition-all font-medium shadow-md"
                     >
                       Get Started
                     </button>
