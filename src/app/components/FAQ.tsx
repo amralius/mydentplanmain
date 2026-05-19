@@ -1,8 +1,14 @@
 import { useState } from 'react';
-import { Mail, MessageCircle, ShieldQuestion } from 'lucide-react';
+import { MessageCircle, Send, ShieldQuestion } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 
 export default function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const [supportName, setSupportName] = useState('');
+  const [supportEmail, setSupportEmail] = useState('');
+  const [supportTopic, setSupportTopic] = useState('Estimate question');
+  const [supportMessage, setSupportMessage] = useState('');
+  const [ticketStatus, setTicketStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
 
   const faqs = [
     {
@@ -31,9 +37,34 @@ export default function FAQ() {
     },
     {
       question: "How do I contact support?",
-      answer: "You can email support@mydentplan.com with questions about estimates, account access, saved plans, or issues using the dentist finder."
+      answer: "Use the support form below to create a ticket for estimate questions, account access, saved plans, or issues using the dentist finder."
     }
   ];
+
+  const handleSupportSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setTicketStatus('sending');
+
+    const { error } = await supabase.from('support_tickets').insert({
+      name: supportName.trim(),
+      email: supportEmail.trim(),
+      topic: supportTopic,
+      message: supportMessage.trim(),
+      source: 'faq',
+    });
+
+    if (error) {
+      console.error(error);
+      setTicketStatus('error');
+      return;
+    }
+
+    setSupportName('');
+    setSupportEmail('');
+    setSupportTopic('Estimate question');
+    setSupportMessage('');
+    setTicketStatus('sent');
+  };
 
   return (
     <section id="faq" className="py-24 bg-white">
@@ -79,36 +110,103 @@ export default function FAQ() {
         </div>
 
         <div id="contact-support" className="mt-12 rounded-2xl border border-blue-100 bg-blue-50 p-6">
-          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
             <div>
               <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm font-medium text-primary">
                 <ShieldQuestion className="h-4 w-4" />
                 Support
               </div>
               <h3 className="text-2xl font-semibold text-gray-900 mb-2">
-                Still have questions?
+                Need help?
               </h3>
               <p className="text-gray-600">
-                Contact MyDentPlan support for account help, estimate questions, or dentist finder issues.
+                Send a ticket for account help, estimate questions, saved dentist issues, or dentist finder problems.
               </p>
+              <div className="mt-5 rounded-xl bg-white p-4 text-sm text-gray-600">
+                Tickets are saved in Supabase so you can review them from your dashboard database.
+              </div>
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <a
-                href="mailto:support@mydentplan.com?subject=MyDentPlan%20Support"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 font-semibold text-white transition hover:bg-blue-700"
+            <form onSubmit={handleSupportSubmit} className="rounded-2xl bg-white p-5 shadow-sm">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-gray-700">Name</label>
+                  <input
+                    value={supportName}
+                    onChange={(event) => setSupportName(event.target.value)}
+                    required
+                    className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="Your name"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-gray-700">Email</label>
+                  <input
+                    type="email"
+                    value={supportEmail}
+                    onChange={(event) => setSupportEmail(event.target.value)}
+                    required
+                    className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="you@example.com"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="mb-2 block text-sm font-semibold text-gray-700">What do you need help with?</label>
+                <select
+                  value={supportTopic}
+                  onChange={(event) => setSupportTopic(event.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option>Estimate question</option>
+                  <option>Account access</option>
+                  <option>Saved dentists</option>
+                  <option>Dentist finder</option>
+                  <option>Bug report</option>
+                  <option>Other</option>
+                </select>
+              </div>
+
+              <div className="mt-4">
+                <label className="mb-2 block text-sm font-semibold text-gray-700">Message</label>
+                <textarea
+                  value={supportMessage}
+                  onChange={(event) => setSupportMessage(event.target.value)}
+                  required
+                  rows={4}
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="Tell us what happened or what you need help with."
+                />
+              </div>
+
+              {ticketStatus === 'sent' && (
+                <div className="mt-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                  Ticket sent. Thanks, we saved your request.
+                </div>
+              )}
+
+              {ticketStatus === 'error' && (
+                <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  Could not send ticket yet. Make sure the support_tickets table exists in Supabase.
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={ticketStatus === 'sending'}
+                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:bg-gray-300"
               >
-                <Mail className="h-4 w-4" />
-                Email Support
-              </a>
-              <a
-                href="mailto:support@mydentplan.com?subject=MyDentPlan%20Feedback"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-5 py-3 font-semibold text-gray-700 transition hover:bg-blue-50"
-              >
-                <MessageCircle className="h-4 w-4" />
-                Send Feedback
-              </a>
-            </div>
+                {ticketStatus === 'sending' ? (
+                  'Sending...'
+                ) : (
+                  <>
+                    <Send className="h-4 w-4" />
+                    Send Ticket
+                  </>
+                )}
+              </button>
+            </form>
           </div>
         </div>
       </div>

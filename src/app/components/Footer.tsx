@@ -13,15 +13,11 @@ export default function Footer() {
   const planLinks = [
     { to: '/dashboard', label: 'Dashboard' },
     { to: '/calculator', label: 'Create Estimate' },
-    { to: '/symptom-checker', label: 'Save Symptom Check' },
-    { to: '/faq', label: 'About MyDentPlan' },
   ];
 
   const supportLinks = [
     { to: '/faq', label: 'FAQ' },
-    { to: '/faq#contact-support', label: 'Contact' },
-    { to: '/faq', label: 'How estimates work' },
-    { to: '/faq', label: 'Coverage questions' },
+    { to: '/faq#contact-support', label: 'Need Help?' },
     { to: '/privacy', label: 'Privacy Policy' },
     { to: '/terms', label: 'Terms' },
   ];
@@ -131,7 +127,7 @@ export default function Footer() {
               Terms
             </Link>
             <Link to="/faq#contact-support" className="text-gray-400 transition-colors hover:text-white">
-              Contact
+              Need Help?
             </Link>
           </div>
         </div>
