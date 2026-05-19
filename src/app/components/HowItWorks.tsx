@@ -1,21 +1,23 @@
+import { Link } from 'react-router-dom';
+
 export default function HowItWorks() {
   const steps = [
     {
       number: "1",
-      title: "Select Your Treatment",
-      description: "Choose from common dental procedures like cleanings, fillings, crowns, or implants.",
+      title: "Check Symptoms",
+      description: "Start with what you feel, where it hurts, and how long it has been happening.",
       color: "bg-blue-500"
     },
     {
       number: "2",
-      title: "Enter Insurance Details",
-      description: "Select your insurance provider and indicate if you've met your deductible.",
+      title: "Estimate Cost",
+      description: "Review suggested treatments, add insurance details, and see a realistic cost range.",
       color: "bg-purple-500"
     },
     {
       number: "3",
-      title: "Get Your Estimate",
-      description: "See an instant breakdown of costs, insurance coverage, and your out-of-pocket expenses.",
+      title: "Choose Next Step",
+      description: "Save your plan, compare it later, or search for dentists near your ZIP code.",
       color: "bg-green-500"
     }
   ];
@@ -28,7 +30,7 @@ export default function HowItWorks() {
             How It Works
           </h2>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Get accurate dental cost estimates in three simple steps
+            Move from a dental concern to a practical plan in three simple steps
           </p>
         </div>
 
@@ -49,15 +51,15 @@ export default function HowItWorks() {
         </div>
 
         <div className="mt-16 text-center">
-          <a
-            href="#calculator"
+          <Link
+            to="/symptom-checker"
             className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl"
           >
-            Try It Now
+            Start Symptom Checker
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>
-          </a>
+          </Link>
         </div>
       </div>
     </section>

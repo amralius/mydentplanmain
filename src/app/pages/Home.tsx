@@ -4,6 +4,37 @@ import HowItWorks from '../components/HowItWorks';
 import Testimonials from '../components/Testimonials';
 
 export default function Home() {
+  const journeySteps = [
+    {
+      step: '1',
+      title: 'Start with symptoms',
+      description: 'Choose the area that hurts and describe what you feel.',
+      action: 'Check Symptoms',
+      to: '/symptom-checker',
+    },
+    {
+      step: '2',
+      title: 'Review likely treatments',
+      description: 'See possible next steps like exams, fillings, crowns, or X-rays.',
+      action: 'Start Checker',
+      to: '/symptom-checker',
+    },
+    {
+      step: '3',
+      title: 'Estimate your cost',
+      description: 'Add insurance and ZIP code details to see an out-of-pocket range.',
+      action: 'Estimate Cost',
+      to: '/calculator',
+    },
+    {
+      step: '4',
+      title: 'Find nearby care',
+      description: 'Search dentists near you when you are ready to book.',
+      action: 'Find Dentist',
+      to: '/find-dentist',
+    },
+  ];
+
   return (
     <>
       <section className="pt-32 pb-20 bg-gradient-to-b from-blue-50 to-white">
@@ -16,7 +47,7 @@ export default function Home() {
               Estimate your dental costs before your visit
             </h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Check your symptoms and see what your insurance might cover in seconds. Make informed decisions about your dental care with transparent, accurate cost estimates.
+              Check symptoms, understand possible treatments, estimate what insurance may cover, and find a dentist when you are ready.
             </p>
             <div className="flex items-center justify-center gap-4 pt-4">
               <Link
@@ -26,15 +57,15 @@ export default function Home() {
                 Get Free Estimate
               </Link>
               <a
-                href="#how-it-works"
+                href="#care-path"
                 className="px-8 py-4 bg-white text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all"
               >
-                Learn More
+                See the Path
               </a>
             </div>
           </div>
 
-          <div className="flex justify-center items-center gap-8 text-sm text-gray-600">
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-8 text-sm text-gray-600">
             <div className="flex items-center gap-2">
               <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -57,6 +88,46 @@ export default function Home() {
         </div>
       </section>
 
+      <section id="care-path" className="py-20 bg-white border-y border-gray-100">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-12">
+            <div>
+              <h2 className="text-4xl font-semibold text-gray-900 mb-4">
+                A clear path from concern to appointment
+              </h2>
+              <p className="text-xl text-gray-600 max-w-2xl">
+                MyDentPlan is organized around one simple movement: figure out what might be happening, estimate the money, then choose your next step.
+              </p>
+            </div>
+            <Link
+              to="/symptom-checker"
+              className="inline-flex items-center justify-center px-6 py-3 bg-primary text-white rounded-xl hover:bg-blue-700 transition-all font-medium shadow-md"
+            >
+              Start at Step 1
+            </Link>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {journeySteps.map((item) => (
+              <Link
+                key={item.step}
+                to={item.to}
+                className="group p-6 rounded-2xl border border-gray-200 bg-gray-50 hover:bg-white hover:border-primary/40 hover:shadow-lg transition-all"
+              >
+                <div className="w-11 h-11 rounded-xl bg-primary text-white flex items-center justify-center font-semibold mb-5">
+                  {item.step}
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">{item.title}</h3>
+                <p className="text-gray-600 mb-5">{item.description}</p>
+                <span className="text-primary font-medium group-hover:text-blue-700">
+                  {item.action}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <Features />
       <HowItWorks />
       <Testimonials />
@@ -69,12 +140,20 @@ export default function Home() {
           <p className="text-xl text-blue-100 mb-8">
             Join thousands of patients who are making informed decisions about their dental care.
           </p>
-          <Link
-            to="/symptom-checker"
-            className="inline-block px-8 py-4 bg-white text-primary rounded-xl hover:bg-gray-100 transition-all shadow-lg"
-          >
-            Get Started for Free
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              to="/symptom-checker"
+              className="inline-block px-8 py-4 bg-white text-primary rounded-xl hover:bg-gray-100 transition-all shadow-lg"
+            >
+              Check Symptoms
+            </Link>
+            <Link
+              to="/find-dentist"
+              className="inline-block px-8 py-4 bg-blue-900/30 text-white border border-white/30 rounded-xl hover:bg-blue-900/40 transition-all"
+            >
+              Find a Dentist
+            </Link>
+          </div>
         </div>
       </section>
     </>
