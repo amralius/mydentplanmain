@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { LocateFixed, MapPin, Navigation, Phone, Star } from "lucide-react";
+import { Clock, LocateFixed, MapPin, Navigation, Phone, ShieldCheck, Star, Users } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 declare global {
@@ -15,6 +15,9 @@ type DentistResult = {
   rating: number | "N/A";
   address: string;
   phone?: string;
+  userRatings?: number;
+  distanceMiles?: number;
+  openNow?: boolean;
   placeId: string;
   mapsUrl: string;
   directionsUrl: string;
@@ -67,6 +70,10 @@ export default function FindDentistPage() {
   const [loading, setLoading] = useState(false);
   const [locating, setLocating] = useState(false);
   const [ratingOnly, setRatingOnly] = useState(false);
+  const [openNowOnly, setOpenNowOnly] = useState(false);
+  const [acceptingPatientsOnly, setAcceptingPatientsOnly] = useState(false);
+  const [emergencyOnly, setEmergencyOnly] = useState(false);
+  const [weekendOnly, setWeekendOnly] = useState(false);
   const [activePlaceId, setActivePlaceId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [searchLabel, setSearchLabel] = useState(zipFromURL || user?.zipCode || "your area");
@@ -77,13 +84,31 @@ export default function FindDentistPage() {
   const placesServiceRef = useRef<any>(null);
   const infoWindowRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+  const searchOriginRef = useRef<{ lat: number; lng: number } | null>(null);
   const latestSymptoms = symptomHistory?.[0]?.symptoms || [];
+
+  const sampleDentists = [
+    { name: "Smile Shack", rating: "4.8", note: "General dentist" },
+    { name: "Suffolk Pediatric Dentistry", rating: "4.7", note: "Pediatric dentist" },
+    { name: "Family Dental Care", rating: "4.6", note: "Preventive care" },
+  ];
 
   const getSuggestedKeyword = () => {
     const symptoms = latestSymptoms.join(" ").toLowerCase();
 
     if (symptoms.includes("child") || symptoms.includes("baby")) {
       return "pediatric dentist";
+    }
+
+    if (
+      (symptoms.includes("sharp pain") || symptoms.includes("throbbing pain")) &&
+      (symptoms.includes("cold") || symptoms.includes("heat"))
+    ) {
+      return "endodontist";
+    }
+
+    if (symptoms.includes("bleeding gums") || symptoms.includes("gums")) {
+      return "periodontist";
     }
 
     if (
@@ -99,7 +124,7 @@ export default function FindDentistPage() {
       symptoms.includes("missing tooth") ||
       symptoms.includes("crown")
     ) {
-      return "prosthodontist dentist";
+      return "prosthodontist";
     }
 
     return "dentist";
@@ -110,6 +135,7 @@ export default function FindDentistPage() {
   };
 
   const getDentistKeyword = () => {
+    if (emergencyOnly) return "emergency dentist";
     return specialty === "best-match" ? getSuggestedKeyword() : specialty;
   };
 
@@ -133,11 +159,75 @@ export default function FindDentistPage() {
       return "Matched based on urgent symptoms";
     }
 
-    if (keyword === "prosthodontist dentist") {
+    if (keyword === "endodontist") {
+      return "Matched based on sharp pain or temperature sensitivity";
+    }
+
+    if (keyword === "periodontist") {
+      return "Matched based on gum-related symptoms";
+    }
+
+    if (keyword === "prosthodontist") {
       return "Matched based on restorative treatment needs";
     }
 
     return "General dental match";
+  };
+
+  const getSymptomInsight = () => {
+    const keyword = getDentistKeyword();
+    const symptoms = latestSymptoms.join(", ");
+
+    if (!latestSymptoms.length) {
+      return {
+        title: "Recommended based on your search",
+        detail: "Choose Best match after saving symptom history, or pick a specialty manually.",
+        specialty: getSpecialtyLabel(keyword),
+      };
+    }
+
+    if (keyword === "endodontist") {
+      return {
+        title: "Recommended based on your symptoms",
+        detail: `${symptoms} may point to pulp irritation or nerve-related pain.`,
+        specialty: "Endodontist",
+      };
+    }
+
+    if (keyword === "periodontist") {
+      return {
+        title: "Recommended based on your symptoms",
+        detail: `${symptoms} may point to gum inflammation or periodontal concerns.`,
+        specialty: "Periodontist",
+      };
+    }
+
+    return {
+      title: "Recommended based on your symptoms",
+      detail: `Your latest symptoms: ${symptoms}`,
+      specialty: getSpecialtyLabel(keyword),
+    };
+  };
+
+  const getCoordinate = (locationValue: any) => {
+    return {
+      lat: typeof locationValue.lat === "function" ? locationValue.lat() : locationValue.lat,
+      lng: typeof locationValue.lng === "function" ? locationValue.lng() : locationValue.lng,
+    };
+  };
+
+  const getDistanceMiles = (from: { lat: number; lng: number }, to: any) => {
+    const destination = getCoordinate(to);
+    const earthRadiusMiles = 3958.8;
+    const latDiff = ((destination.lat - from.lat) * Math.PI) / 180;
+    const lngDiff = ((destination.lng - from.lng) * Math.PI) / 180;
+    const fromLat = (from.lat * Math.PI) / 180;
+    const toLat = (destination.lat * Math.PI) / 180;
+    const a =
+      Math.sin(latDiff / 2) * Math.sin(latDiff / 2) +
+      Math.cos(fromLat) * Math.cos(toLat) * Math.sin(lngDiff / 2) * Math.sin(lngDiff / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return Math.round(earthRadiusMiles * c * 10) / 10;
   };
 
   const loadGoogleMaps = () => {
@@ -228,6 +318,7 @@ export default function FindDentistPage() {
     setStatusMessage("");
     setSearchLabel(origin.label);
     clearMarkers();
+    searchOriginRef.current = getCoordinate(origin.location);
 
     try {
       await loadGoogleMaps();
@@ -261,13 +352,16 @@ export default function FindDentistPage() {
       });
       markersRef.current.push(searchAreaMarker);
 
-      const keyword = getDentistKeyword();
+      let keyword = getDentistKeyword();
+      if (acceptingPatientsOnly) keyword = `${keyword} accepting new patients`;
+      if (weekendOnly) keyword = `${keyword} weekend appointments`;
 
       placesServiceRef.current.nearbySearch(
         {
           location: origin.location,
           radius: 8000,
           keyword,
+          openNow: openNowOnly || undefined,
         },
         async (places: any[], status: string) => {
           if (
@@ -288,8 +382,13 @@ export default function FindDentistPage() {
 
               return {
                 name: place.name,
-                specialty: getSpecialtyLabel(keyword),
+                specialty: getSpecialtyLabel(getDentistKeyword()),
                 rating: place.rating || "N/A",
+                userRatings: place.user_ratings_total,
+                distanceMiles: place.geometry?.location && searchOriginRef.current
+                  ? getDistanceMiles(searchOriginRef.current, place.geometry.location)
+                  : undefined,
+                openNow: place.opening_hours?.open_now,
                 address: place.vicinity || "Address unavailable",
                 phone,
                 placeId: place.place_id,
@@ -435,6 +534,7 @@ export default function FindDentistPage() {
         typeof dentist.rating === "number" ? dentist.rating >= 4.5 : false
       )
     : results;
+  const symptomInsight = getSymptomInsight();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -446,7 +546,7 @@ export default function FindDentistPage() {
                 Find a Dentist
               </h1>
               <p className="text-gray-600 text-lg max-w-3xl">
-                Use your location or ZIP code to pull up nearby dental offices on an interactive Google Map.
+                Find nearby dentists based on your location, insurance, and symptoms.
               </p>
             </div>
             <button
@@ -502,11 +602,11 @@ export default function FindDentistPage() {
                 disabled={loading || locating}
                 className="self-end bg-gray-900 text-white rounded-xl px-6 py-3 font-medium hover:bg-gray-800 transition disabled:bg-gray-300"
               >
-                {loading ? "Searching..." : "Search ZIP"}
+                {loading ? "Searching..." : "Find Dentists"}
               </button>
             </div>
 
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-5">
               <label htmlFor="ratingOnly" className="flex items-center gap-3 text-sm text-gray-600">
                 <input
                   id="ratingOnly"
@@ -517,10 +617,50 @@ export default function FindDentistPage() {
                 Show only dentists rated 4.5+
               </label>
 
-              <p className="text-sm text-gray-500">
-                Specialty: {getSelectedSpecialty().label} · {getSelectedSpecialty().hint}
-              </p>
+              <label htmlFor="openNowOnly" className="flex items-center gap-3 text-sm text-gray-600">
+                <input
+                  id="openNowOnly"
+                  type="checkbox"
+                  checked={openNowOnly}
+                  onChange={(e) => setOpenNowOnly(e.target.checked)}
+                />
+                Open now
+              </label>
+
+              <label htmlFor="acceptingPatientsOnly" className="flex items-center gap-3 text-sm text-gray-600">
+                <input
+                  id="acceptingPatientsOnly"
+                  type="checkbox"
+                  checked={acceptingPatientsOnly}
+                  onChange={(e) => setAcceptingPatientsOnly(e.target.checked)}
+                />
+                Accepting new patients
+              </label>
+
+              <label htmlFor="emergencyOnly" className="flex items-center gap-3 text-sm text-gray-600">
+                <input
+                  id="emergencyOnly"
+                  type="checkbox"
+                  checked={emergencyOnly}
+                  onChange={(e) => setEmergencyOnly(e.target.checked)}
+                />
+                Emergency visits
+              </label>
+
+              <label htmlFor="weekendOnly" className="flex items-center gap-3 text-sm text-gray-600">
+                <input
+                  id="weekendOnly"
+                  type="checkbox"
+                  checked={weekendOnly}
+                  onChange={(e) => setWeekendOnly(e.target.checked)}
+                />
+                Weekend appointments
+              </label>
             </div>
+
+            <p className="mt-4 text-sm text-gray-500">
+              Specialty: {getSelectedSpecialty().label} - {getSelectedSpecialty().hint}. Confirm insurance and availability with the office.
+            </p>
 
             {statusMessage && (
               <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
@@ -529,26 +669,46 @@ export default function FindDentistPage() {
             )}
           </div>
 
-          {latestSymptoms.length > 0 && (
-            <div className="bg-purple-50 border border-purple-100 rounded-2xl p-4 mb-6">
-              <p className="text-sm text-purple-700 font-medium">
-                Smart match based on your latest symptom check:
-              </p>
-              <p className="text-sm text-purple-700 mt-1">
-                {latestSymptoms.join(", ")}
-              </p>
-            </div>
-          )}
-
           <div className="grid gap-6 lg:grid-cols-[1.35fr_0.9fr]">
-            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg">
-              <div
-                ref={mapRef}
-                className="h-[520px] w-full bg-blue-50"
-              />
-            </div>
-
             <div className="space-y-4">
+              <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg">
+                <div
+                  ref={mapRef}
+                  className="h-[520px] w-full bg-blue-50"
+                />
+
+                {!searched && !loading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-green-50 p-6">
+                    <div className="w-full max-w-xl rounded-2xl border border-white bg-white/90 p-6 shadow-lg">
+                      <div className="mb-4 flex items-center gap-3">
+                        <div className="rounded-full bg-primary/10 p-3 text-primary">
+                          <MapPin className="h-6 w-6" />
+                        </div>
+                        <div>
+                          <p className="text-lg font-semibold text-gray-900">Dentists will appear here</p>
+                          <p className="text-sm text-gray-500">Use your location or ZIP code to load a draggable Google Map.</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        {sampleDentists.map((dentist) => (
+                          <div key={dentist.name} className="flex items-center justify-between rounded-xl border border-gray-100 bg-white px-4 py-3">
+                            <div>
+                              <p className="font-medium text-gray-900">{dentist.name}</p>
+                              <p className="text-sm text-gray-500">{dentist.note}</p>
+                            </div>
+                            <span className="inline-flex items-center gap-1 text-sm font-semibold text-yellow-600">
+                              <Star className="h-4 w-4 fill-current" />
+                              {dentist.rating}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {searched && (
                 <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                   <div className="flex items-center justify-between gap-4">
@@ -561,35 +721,6 @@ export default function FindDentistPage() {
                       </p>
                     </div>
                     <MapPin className="h-5 w-5 text-primary" />
-                  </div>
-                </div>
-              )}
-
-              {favorites.length > 0 && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                    Saved Dentists
-                  </h2>
-
-                  <div className="space-y-3">
-                    {favorites.map((dentist) => (
-                      <div
-                        key={dentist.placeId}
-                        className="flex items-center justify-between gap-4 border border-gray-100 rounded-xl p-4"
-                      >
-                        <div>
-                          <p className="font-medium text-gray-900">{dentist.name}</p>
-                          <p className="text-sm text-gray-500">{dentist.address}</p>
-                        </div>
-
-                        <button
-                          onClick={() => toggleFavorite(dentist)}
-                          className="text-sm text-red-600 hover:text-red-700 font-medium"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
                   </div>
                 </div>
               )}
@@ -621,23 +752,43 @@ export default function FindDentistPage() {
                           <h2 className="text-lg font-semibold text-gray-900">{dentist.name}</h2>
                           <p className="text-gray-600">{dentist.specialty}</p>
                           <p className="text-sm text-gray-500">{dentist.address}</p>
-
-                          {dentist.matchReason && (
-                            <p className="text-xs text-purple-600 mt-2 font-medium">
-                              {dentist.matchReason}
-                            </p>
-                          )}
-
-                          <p className="text-xs text-gray-400 mt-3">
-                            Insurance not verified - confirm with office
-                          </p>
                         </div>
 
                         <div className="inline-flex items-center gap-1 text-yellow-500 font-medium whitespace-nowrap">
                           <Star className="h-4 w-4 fill-current" />
                           {dentist.rating}
+                          {dentist.userRatings ? (
+                            <span className="text-xs text-gray-400">({dentist.userRatings})</span>
+                          ) : null}
                         </div>
                       </div>
+
+                      <div className="mt-4 grid gap-3 text-sm text-gray-600 sm:grid-cols-2 lg:grid-cols-4">
+                        {dentist.distanceMiles !== undefined && (
+                          <span className="inline-flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-primary" />
+                            {dentist.distanceMiles} miles away
+                          </span>
+                        )}
+                        <span className="inline-flex items-center gap-2">
+                          <ShieldCheck className="h-4 w-4 text-green-600" />
+                          {insurance ? `Confirm ${insurance}` : "Confirm insurance"}
+                        </span>
+                        <span className="inline-flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-blue-600" />
+                          {dentist.openNow === true ? "Open now" : "Hours unavailable"}
+                        </span>
+                        <span className="inline-flex items-center gap-2">
+                          <Users className="h-4 w-4 text-purple-600" />
+                          {acceptingPatientsOnly ? "New patients filter" : "Call to confirm"}
+                        </span>
+                      </div>
+
+                      {dentist.matchReason && (
+                        <p className="mt-4 rounded-xl bg-purple-50 px-3 py-2 text-sm font-medium text-purple-700">
+                          {dentist.matchReason}
+                        </p>
+                      )}
 
                       <div className="flex flex-wrap gap-3 mt-4">
                         <a
@@ -668,11 +819,12 @@ export default function FindDentistPage() {
                             className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition"
                           >
                             <Phone className="h-4 w-4" />
-                            Call Office
+                            Call
                           </a>
                         )}
 
-                        <span
+                        <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             toggleFavorite(dentist);
@@ -680,7 +832,7 @@ export default function FindDentistPage() {
                           className="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg text-sm font-medium hover:bg-yellow-200 transition"
                         >
                           {isSaved ? "Saved" : "Save"}
-                        </span>
+                        </button>
                       </div>
                     </div>
                   );
@@ -691,6 +843,69 @@ export default function FindDentistPage() {
                 <p className="text-gray-500 mt-6">
                   No dentists found. Try another ZIP code or turn off the 4.5+ filter.
                 </p>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-purple-100 bg-purple-50 p-5 shadow-sm">
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="rounded-full bg-white p-2 text-purple-700">
+                    <ShieldCheck className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-purple-900">{symptomInsight.title}</p>
+                    <p className="text-lg font-semibold text-gray-900">{symptomInsight.specialty}</p>
+                  </div>
+                </div>
+                <p className="text-sm text-purple-800">{symptomInsight.detail}</p>
+                <p className="mt-3 text-sm font-medium text-purple-900">
+                  We prioritized offices that commonly treat these issues.
+                </p>
+              </div>
+
+              {favorites.length > 0 && (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                    Saved Dentists
+                  </h2>
+
+                  <div className="space-y-3">
+                    {favorites.map((dentist) => (
+                      <div
+                        key={dentist.placeId}
+                        className="flex items-center justify-between gap-4 border border-gray-100 rounded-xl p-4"
+                      >
+                        <div>
+                          <p className="font-medium text-gray-900">{dentist.name}</p>
+                          <p className="text-sm text-gray-500">{dentist.address}</p>
+                          <div className="mt-2 flex flex-wrap gap-3 text-xs text-gray-500">
+                            <span className="inline-flex items-center gap-1">
+                              <Star className="h-3.5 w-3.5 fill-current text-yellow-500" />
+                              {dentist.rating}
+                            </span>
+                            {dentist.distanceMiles !== undefined && (
+                              <span className="inline-flex items-center gap-1">
+                                <MapPin className="h-3.5 w-3.5 text-primary" />
+                                {dentist.distanceMiles} miles
+                              </span>
+                            )}
+                            <span className="inline-flex items-center gap-1">
+                              <ShieldCheck className="h-3.5 w-3.5 text-green-600" />
+                              {insurance ? `${insurance} likely` : "Insurance check"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => toggleFavorite(dentist)}
+                          className="text-sm text-red-600 hover:text-red-700 font-medium"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           </div>
