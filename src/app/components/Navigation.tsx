@@ -43,7 +43,7 @@ export default function Navigation() {
         <div className="max-w-7xl mx-auto rounded-2xl border border-blue-100/80 bg-white/90 px-4 py-3 shadow-[0_14px_40px_rgba(37,99,235,0.10)] backdrop-blur-md">
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4">
             <Link to="/" className="flex min-w-0 items-center gap-2">
-              <img src={logo} alt="MyDentPlan" className="h-10 md:h-12 w-auto" />
+              <img src={logo} alt="MyDentPlan" className="h-12 md:h-16 w-auto" />
             </Link>
 
             <div className="hidden lg:flex justify-center">
@@ -61,11 +61,11 @@ export default function Navigation() {
               </div>
             </div>
 
-            <div className="hidden lg:flex items-center justify-end gap-3">
+            <div className="hidden lg:flex items-center justify-end gap-2 rounded-full border border-gray-200 bg-gray-50/90 p-1">
               {isAuthenticated ? (
                 <button
                   onClick={handleLogout}
-                  className="rounded-full px-5 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors font-medium"
+                  className="rounded-full px-5 py-2.5 text-sm text-gray-600 hover:bg-white hover:text-gray-900 hover:shadow-sm transition-all font-medium"
                 >
                   Log Out
                 </button>
@@ -73,13 +73,13 @@ export default function Navigation() {
                 <>
                   <button
                     onClick={() => handleAuthClick('login')}
-                    className="rounded-full px-5 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors font-medium"
+                    className="rounded-full px-5 py-2.5 text-sm text-gray-600 hover:bg-white hover:text-gray-900 hover:shadow-sm transition-all font-medium"
                   >
                     Sign In
                   </button>
                   <button
                     onClick={() => handleAuthClick('signup')}
-                    className="rounded-full bg-primary px-6 py-2.5 text-sm text-white hover:bg-blue-700 transition-all font-medium shadow-md hover:shadow-lg"
+                    className="rounded-full bg-primary px-6 py-2.5 text-sm text-white hover:bg-blue-700 transition-all font-semibold shadow-md hover:shadow-lg"
                   >
                     Get Started
                   </button>
@@ -133,13 +133,13 @@ export default function Navigation() {
                   <>
                     <button
                       onClick={() => handleAuthClick('login')}
-                      className="w-full rounded-xl bg-gray-100 px-5 py-3 text-left text-gray-700 hover:bg-gray-200 transition-colors font-medium"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-5 py-3 text-left text-gray-700 hover:bg-gray-50 transition-colors font-medium"
                     >
                       Sign In
                     </button>
                     <button
                       onClick={() => handleAuthClick('signup')}
-                      className="w-full px-6 py-3 bg-primary text-white rounded-xl hover:bg-blue-700 transition-all font-medium shadow-md"
+                      className="w-full px-6 py-3 bg-primary text-white rounded-xl hover:bg-blue-700 transition-all font-semibold shadow-md"
                     >
                       Get Started
                     </button>

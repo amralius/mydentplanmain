@@ -70,7 +70,7 @@ export default function Footer() {
         <div className="grid gap-10 border-b border-white/10 pb-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div>
             <Link to="/" className="mb-5 inline-flex items-center">
-              <img src={logo} alt="MyDentPlan" className="h-12 w-auto brightness-0 invert md:h-14" />
+              <img src={logo} alt="MyDentPlan" className="h-16 w-auto brightness-0 invert md:h-20" />
             </Link>
             <p className="max-w-sm text-sm leading-6 text-gray-400">
               A simpler way to understand possible dental costs before you book care.
