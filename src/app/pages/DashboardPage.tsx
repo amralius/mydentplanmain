@@ -3,6 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import ConfirmModal from '../components/ConfirmModal';
 
+type SavedDentist = {
+  name: string;
+  specialty?: string;
+  rating?: number | 'N/A';
+  address: string;
+  phone?: string;
+  placeId: string;
+  mapsUrl?: string;
+  directionsUrl?: string;
+};
+
 export default function DashboardPage() {
   const { user, isAuthenticated, loading, savedEstimates, symptomHistory, updateProfile, deleteEstimate, deleteSymptomCheck, updateEstimateStatus, updateSymptomStatus } = useAuth();
   const navigate = useNavigate();
@@ -16,6 +27,10 @@ export default function DashboardPage() {
     isOpen: false,
     type: null,
     id: null,
+  });
+  const [savedDentists, setSavedDentists] = useState<SavedDentist[]>(() => {
+    const saved = localStorage.getItem('savedDentists');
+    return saved ? JSON.parse(saved) : [];
   });
 
   useEffect(() => {
@@ -78,6 +93,12 @@ useEffect(() => {
       }
     }
     setDeleteConfirmModal({ isOpen: false, type: null, id: null });
+  };
+
+  const removeSavedDentist = (placeId: string) => {
+    const updated = savedDentists.filter((dentist) => dentist.placeId !== placeId);
+    setSavedDentists(updated);
+    localStorage.setItem('savedDentists', JSON.stringify(updated));
   };
 
   const getInitials = (name: string) => {
@@ -330,6 +351,107 @@ return (
                 </div>
               </div>
 
+              {/* Saved Dentists */}
+              <div className="bg-white rounded-2xl shadow-lg p-8">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
+                  <div>
+                    <h2 className="text-2xl font-semibold text-gray-900">
+                      Saved Dentists
+                    </h2>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Offices you saved from the dentist finder.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => navigate(`/find-dentist?zip=${user.zipCode || ""}`)}
+                    className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+                  >
+                    Find More Dentists
+                  </button>
+                </div>
+
+                {savedDentists.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-6">
+                    <p className="text-gray-600 mb-4">
+                      No saved dentists yet. Search nearby offices and save the ones you want to compare.
+                    </p>
+                    <button
+                      onClick={() => navigate(`/find-dentist?zip=${user.zipCode || ""}`)}
+                      className="px-5 py-2.5 bg-white text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all font-medium"
+                    >
+                      Search Dentists
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {savedDentists.map((dentist) => (
+                      <div
+                        key={dentist.placeId}
+                        className="rounded-xl border border-gray-200 p-5"
+                      >
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2 mb-1">
+                              <h3 className="font-semibold text-gray-900">{dentist.name}</h3>
+                              {dentist.rating && (
+                                <span className="rounded-full bg-yellow-50 px-2.5 py-1 text-xs font-medium text-yellow-700">
+                                  ★ {dentist.rating}
+                                </span>
+                              )}
+                            </div>
+                            {dentist.specialty && (
+                              <p className="text-sm text-gray-600">{dentist.specialty}</p>
+                            )}
+                            <p className="text-sm text-gray-500">{dentist.address}</p>
+                            {dentist.phone && (
+                              <p className="text-sm text-gray-500 mt-1">{dentist.phone}</p>
+                            )}
+                          </div>
+
+                          <button
+                            onClick={() => removeSavedDentist(dentist.placeId)}
+                            className="text-sm font-medium text-red-600 hover:text-red-700"
+                          >
+                            Remove
+                          </button>
+                        </div>
+
+                        <div className="flex flex-wrap gap-3 mt-4">
+                          {dentist.directionsUrl && (
+                            <a
+                              href={dentist.directionsUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+                            >
+                              Directions
+                            </a>
+                          )}
+                          {dentist.phone && (
+                            <a
+                              href={`tel:${dentist.phone}`}
+                              className="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition"
+                            >
+                              Call
+                            </a>
+                          )}
+                          {dentist.mapsUrl && (
+                            <a
+                              href={dentist.mapsUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition"
+                            >
+                              View on Maps
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* History Timeline */}
               <div className="bg-white rounded-2xl shadow-lg p-8">
                 <h2 className="text-2xl font-semibold text-gray-900 mb-6">
@@ -445,12 +567,11 @@ return (
                 )}
               </div>
 
-{/* Find a Dentist */}
-  <div className="bg-white rounded-2xl shadow-lg p-8">
+              <div className="bg-white rounded-2xl shadow-lg p-8">
 
   <div className="flex items-center justify-between mb-4">
     <h2 className="text-2xl font-semibold text-gray-900">
-      Find a Dentist
+      Search Dentists
     </h2>
 
     <button

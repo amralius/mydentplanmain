@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Mail, MessageCircle, ShieldQuestion } from 'lucide-react';
 
 export default function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
@@ -18,7 +19,7 @@ export default function FAQ() {
     },
     {
       question: "Can I save multiple estimates?",
-      answer: "Yes! With a free account, you can save up to 5 estimates per month. Pro users get unlimited estimates with full history tracking and the ability to export to PDF."
+      answer: "Yes. With a free account, you can save estimates, symptom checks, and dentists so your dashboard becomes your planning hub."
     },
     {
       question: "How often are prices updated?",
@@ -26,7 +27,11 @@ export default function FAQ() {
     },
     {
       question: "Can dental offices use this tool?",
-      answer: "Absolutely! Our Practice plan is designed for dental offices to help patients understand their costs upfront. It includes custom branding, API access, and multi-user support."
+      answer: "Absolutely. Our Practice plan is designed for dental offices to help patients understand their costs upfront. It includes custom branding, API access, and multi-user support."
+    },
+    {
+      question: "How do I contact support?",
+      answer: "You can email support@mydentplan.com with questions about estimates, account access, saved plans, or issues using the dentist finder."
     }
   ];
 
@@ -73,11 +78,38 @@ export default function FAQ() {
           ))}
         </div>
 
-        <div className="mt-12 text-center">
-          <p className="text-gray-600 mb-4">Still have questions?</p>
-          <button className="text-primary hover:text-blue-700 font-semibold">
-            Contact Support →
-          </button>
+        <div id="contact-support" className="mt-12 rounded-2xl border border-blue-100 bg-blue-50 p-6">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm font-medium text-primary">
+                <ShieldQuestion className="h-4 w-4" />
+                Support
+              </div>
+              <h3 className="text-2xl font-semibold text-gray-900 mb-2">
+                Still have questions?
+              </h3>
+              <p className="text-gray-600">
+                Contact MyDentPlan support for account help, estimate questions, or dentist finder issues.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <a
+                href="mailto:support@mydentplan.com?subject=MyDentPlan%20Support"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 font-semibold text-white transition hover:bg-blue-700"
+              >
+                <Mail className="h-4 w-4" />
+                Email Support
+              </a>
+              <a
+                href="mailto:support@mydentplan.com?subject=MyDentPlan%20Feedback"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-5 py-3 font-semibold text-gray-700 transition hover:bg-blue-50"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Send Feedback
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </section>
