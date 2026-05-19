@@ -27,6 +27,29 @@ type SearchOrigin = {
   location: any;
 };
 
+type SpecialtyValue =
+  | "best-match"
+  | "general dentist"
+  | "emergency dentist"
+  | "pediatric dentist"
+  | "orthodontist"
+  | "oral surgeon"
+  | "endodontist"
+  | "periodontist"
+  | "prosthodontist";
+
+const specialtyOptions: { value: SpecialtyValue; label: string; hint: string }[] = [
+  { value: "best-match", label: "Best match", hint: "Uses your symptom history" },
+  { value: "general dentist", label: "General Dentist", hint: "Cleanings, exams, fillings" },
+  { value: "emergency dentist", label: "Emergency Dentist", hint: "Pain, swelling, urgent visits" },
+  { value: "pediatric dentist", label: "Pediatric Dentist", hint: "Children and teens" },
+  { value: "orthodontist", label: "Orthodontist", hint: "Braces and aligners" },
+  { value: "oral surgeon", label: "Oral Surgeon", hint: "Extractions and surgery" },
+  { value: "endodontist", label: "Endodontist", hint: "Root canals" },
+  { value: "periodontist", label: "Periodontist", hint: "Gums and implants" },
+  { value: "prosthodontist", label: "Prosthodontist", hint: "Crowns, dentures, implants" },
+];
+
 export default function FindDentistPage() {
   const { user, symptomHistory } = useAuth();
   const location = useLocation();
@@ -47,6 +70,7 @@ export default function FindDentistPage() {
   const [activePlaceId, setActivePlaceId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [searchLabel, setSearchLabel] = useState(zipFromURL || user?.zipCode || "your area");
+  const [specialty, setSpecialty] = useState<SpecialtyValue>("best-match");
 
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -55,7 +79,7 @@ export default function FindDentistPage() {
   const markersRef = useRef<any[]>([]);
   const latestSymptoms = symptomHistory?.[0]?.symptoms || [];
 
-  const getDentistKeyword = () => {
+  const getSuggestedKeyword = () => {
     const symptoms = latestSymptoms.join(" ").toLowerCase();
 
     if (symptoms.includes("child") || symptoms.includes("baby")) {
@@ -81,8 +105,25 @@ export default function FindDentistPage() {
     return "dentist";
   };
 
+  const getSelectedSpecialty = () => {
+    return specialtyOptions.find((option) => option.value === specialty) || specialtyOptions[0];
+  };
+
+  const getDentistKeyword = () => {
+    return specialty === "best-match" ? getSuggestedKeyword() : specialty;
+  };
+
+  const getSpecialtyLabel = (keyword: string) => {
+    if (keyword === "dentist") return "Dental Office";
+    return specialtyOptions.find((option) => option.value === keyword)?.label || keyword;
+  };
+
   const getMatchReason = () => {
     const keyword = getDentistKeyword();
+
+    if (specialty !== "best-match") {
+      return `Matched to selected specialty: ${getSpecialtyLabel(keyword)}`;
+    }
 
     if (keyword === "pediatric dentist") {
       return "Matched based on pediatric-related symptoms";
@@ -247,7 +288,7 @@ export default function FindDentistPage() {
 
               return {
                 name: place.name,
-                specialty: keyword === "dentist" ? "Dental Office" : keyword,
+                specialty: getSpecialtyLabel(keyword),
                 rating: place.rating || "N/A",
                 address: place.vicinity || "Address unavailable",
                 phone,
@@ -419,26 +460,47 @@ export default function FindDentistPage() {
           </div>
 
           <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-            <div className="grid gap-4 md:grid-cols-[1fr_1fr_auto]">
-              <input
-                value={zip}
-                onChange={(e) => setZip(e.target.value.replace(/\D/g, "").slice(0, 5))}
-                placeholder="ZIP Code"
-                maxLength={5}
-                className="px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary"
-              />
+            <div className="grid gap-4 lg:grid-cols-[1fr_1fr_1.1fr_auto]">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-700">ZIP Code</label>
+                <input
+                  value={zip}
+                  onChange={(e) => setZip(e.target.value.replace(/\D/g, "").slice(0, 5))}
+                  placeholder="10001"
+                  maxLength={5}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
 
-              <input
-                value={insurance}
-                onChange={(e) => setInsurance(e.target.value)}
-                placeholder="Insurance (optional)"
-                className="px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary"
-              />
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-700">Insurance</label>
+                <input
+                  value={insurance}
+                  onChange={(e) => setInsurance(e.target.value)}
+                  placeholder="Optional"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-700">Specialty</label>
+                <select
+                  value={specialty}
+                  onChange={(e) => setSpecialty(e.target.value as SpecialtyValue)}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  {specialtyOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               <button
                 onClick={handleZipSearch}
                 disabled={loading || locating}
-                className="bg-gray-900 text-white rounded-xl px-6 py-3 font-medium hover:bg-gray-800 transition disabled:bg-gray-300"
+                className="self-end bg-gray-900 text-white rounded-xl px-6 py-3 font-medium hover:bg-gray-800 transition disabled:bg-gray-300"
               >
                 {loading ? "Searching..." : "Search ZIP"}
               </button>
@@ -456,7 +518,7 @@ export default function FindDentistPage() {
               </label>
 
               <p className="text-sm text-gray-500">
-                Map pins are clickable, and the map can be dragged or zoomed.
+                Specialty: {getSelectedSpecialty().label} · {getSelectedSpecialty().hint}
               </p>
             </div>
 
@@ -492,7 +554,7 @@ export default function FindDentistPage() {
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="text-sm font-semibold text-gray-900">
-                        Showing dentists near {searchLabel}
+                        Showing {getSpecialtyLabel(getDentistKeyword()).toLowerCase()} results near {searchLabel}
                       </p>
                       <p className="text-sm text-gray-500">
                         {insurance ? `Insurance not verified. Confirm ${insurance} with the office.` : "Insurance not verified. Confirm coverage with the office."}
