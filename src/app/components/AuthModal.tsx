@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -18,6 +18,13 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signup' }: A
 
   const { login, signup } = useAuth();
 const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode);
+      setError('');
+    }
+  }, [initialMode, isOpen]);
 
   if (!isOpen) return null;
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { LocateFixed, MapPin, Navigation, Phone, Star } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 declare global {
@@ -18,6 +19,12 @@ type DentistResult = {
   mapsUrl: string;
   directionsUrl: string;
   matchReason?: string;
+  position?: any;
+};
+
+type SearchOrigin = {
+  label: string;
+  location: any;
 };
 
 export default function FindDentistPage() {
@@ -35,9 +42,17 @@ export default function FindDentistPage() {
   });
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [ratingOnly, setRatingOnly] = useState(false);
+  const [activePlaceId, setActivePlaceId] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState("");
+  const [searchLabel, setSearchLabel] = useState(zipFromURL || user?.zipCode || "your area");
 
   const mapRef = useRef<HTMLDivElement | null>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const placesServiceRef = useRef<any>(null);
+  const infoWindowRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
   const latestSymptoms = symptomHistory?.[0]?.symptoms || [];
 
   const getDentistKeyword = () => {
@@ -86,7 +101,7 @@ export default function FindDentistPage() {
 
   const loadGoogleMaps = () => {
     return new Promise<void>((resolve, reject) => {
-      if (window.google?.maps) {
+      if (window.google?.maps?.places) {
         resolve();
         return;
       }
@@ -98,12 +113,47 @@ export default function FindDentistPage() {
         return;
       }
 
+      const existingScript = document.querySelector<HTMLScriptElement>(
+        'script[src*="maps.googleapis.com/maps/api/js"]'
+      );
+
+      if (existingScript) {
+        existingScript.addEventListener("load", () => resolve(), { once: true });
+        existingScript.addEventListener("error", () => reject("Google Maps failed to load"), { once: true });
+        return;
+      }
+
       const script = document.createElement("script");
       script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
       script.async = true;
       script.onload = () => resolve();
       script.onerror = () => reject("Google Maps failed to load");
       document.body.appendChild(script);
+    });
+  };
+
+  const clearMarkers = () => {
+    markersRef.current.forEach((marker) => marker.setMap(null));
+    markersRef.current = [];
+  };
+
+  const openDentistMarker = (dentist: DentistResult, marker?: any) => {
+    if (!dentist.position || !mapInstanceRef.current || !infoWindowRef.current) return;
+
+    setActivePlaceId(dentist.placeId);
+    mapInstanceRef.current.panTo(dentist.position);
+    mapInstanceRef.current.setZoom(Math.max(mapInstanceRef.current.getZoom() || 13, 14));
+
+    infoWindowRef.current.setContent(`
+      <div style="max-width:240px">
+        <strong>${dentist.name}</strong>
+        <div style="margin-top:4px;color:#4b5563">${dentist.address}</div>
+        <a href="${dentist.mapsUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:8px;color:#2563eb;font-weight:600">Open in Google Maps</a>
+      </div>
+    `);
+    infoWindowRef.current.open({
+      map: mapInstanceRef.current,
+      anchor: marker,
     });
   };
 
@@ -131,107 +181,196 @@ export default function FindDentistPage() {
     });
   };
 
-  const handleSearch = async () => {
+  const searchDentistsNear = async (origin: SearchOrigin) => {
+    setLoading(true);
+    setSearched(true);
+    setStatusMessage("");
+    setSearchLabel(origin.label);
+    clearMarkers();
+
+    try {
+      await loadGoogleMaps();
+
+      const map = new window.google.maps.Map(mapRef.current, {
+        center: origin.location,
+        zoom: 13,
+        gestureHandling: "greedy",
+        mapTypeControl: false,
+        fullscreenControl: true,
+        streetViewControl: true,
+        zoomControl: true,
+      });
+
+      mapInstanceRef.current = map;
+      placesServiceRef.current = new window.google.maps.places.PlacesService(map);
+      infoWindowRef.current = new window.google.maps.InfoWindow();
+
+      const searchAreaMarker = new window.google.maps.Marker({
+        position: origin.location,
+        map,
+        title: "Your search area",
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          scale: 9,
+          fillColor: "#2563EB",
+          fillOpacity: 1,
+          strokeColor: "#ffffff",
+          strokeWeight: 3,
+        },
+      });
+      markersRef.current.push(searchAreaMarker);
+
+      const keyword = getDentistKeyword();
+
+      placesServiceRef.current.nearbySearch(
+        {
+          location: origin.location,
+          radius: 8000,
+          keyword,
+        },
+        async (places: any[], status: string) => {
+          if (
+            status !== window.google.maps.places.PlacesServiceStatus.OK ||
+            !places
+          ) {
+            setResults([]);
+            setLoading(false);
+            setStatusMessage("No dentist offices found nearby. Try another ZIP code or search again from your current location.");
+            return;
+          }
+
+          const formatted = await Promise.all(
+            places.slice(0, 10).map(async (place) => {
+              const phone = place.place_id
+                ? await fetchPhoneNumber(placesServiceRef.current, place.place_id)
+                : undefined;
+
+              return {
+                name: place.name,
+                specialty: keyword === "dentist" ? "Dental Office" : keyword,
+                rating: place.rating || "N/A",
+                address: place.vicinity || "Address unavailable",
+                phone,
+                placeId: place.place_id,
+                position: place.geometry?.location,
+                mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                  place.name
+                )}&query_place_id=${place.place_id}`,
+                directionsUrl: `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                  place.vicinity || place.name
+                )}`,
+                matchReason: getMatchReason(),
+              };
+            })
+          );
+
+          formatted.forEach((dentist) => {
+            if (!dentist.position) return;
+
+            const marker = new window.google.maps.Marker({
+              position: dentist.position,
+              map,
+              title: dentist.name,
+            });
+
+            marker.addListener("click", () => openDentistMarker(dentist, marker));
+            markersRef.current.push(marker);
+          });
+
+          setResults(formatted);
+          setActivePlaceId(formatted[0]?.placeId || null);
+          setLoading(false);
+
+          if (formatted[0]) {
+            setTimeout(() => openDentistMarker(formatted[0]), 0);
+          }
+        }
+      );
+    } catch (err) {
+      console.error(err);
+      setStatusMessage("Google Maps could not load. Check that the Maps API key is set up in Vercel.");
+      setLoading(false);
+    }
+  };
+
+  const handleZipSearch = async () => {
     if (!zip.trim()) {
-      alert("Please enter a ZIP code");
+      setStatusMessage("Enter a ZIP code or use your current location.");
       return;
     }
 
     setLoading(true);
-    setSearched(true);
+    setStatusMessage("");
 
     try {
       await loadGoogleMaps();
 
       const geocoder = new window.google.maps.Geocoder();
-
-      geocoder.geocode({ address: zip }, async (geoResults: any, geoStatus: string) => {
+      geocoder.geocode({ address: zip }, (geoResults: any, geoStatus: string) => {
         if (geoStatus !== "OK" || !geoResults[0]) {
-          alert("Could not find that ZIP code");
+          setStatusMessage("Could not find that ZIP code. Try another one.");
           setLoading(false);
           return;
         }
 
-        const location = geoResults[0].geometry.location;
-
-        const map = new window.google.maps.Map(mapRef.current, {
-          center: location,
-          zoom: 12,
+        searchDentistsNear({
+          label: zip,
+          location: geoResults[0].geometry.location,
         });
-
-        new window.google.maps.Marker({
-          position: location,
-          map,
-          title: "Search area",
-        });
-
-        const service = new window.google.maps.places.PlacesService(map);
-        const keyword = getDentistKeyword();
-
-        service.nearbySearch(
-          {
-            location,
-            radius: 8000,
-            keyword,
-          },
-          async (places: any[], status: string) => {
-            if (
-              status !== window.google.maps.places.PlacesServiceStatus.OK ||
-              !places
-            ) {
-              setResults([]);
-              setLoading(false);
-              return;
-            }
-
-            const formatted = await Promise.all(
-              places.slice(0, 8).map(async (place) => {
-                if (place.geometry?.location) {
-                  new window.google.maps.Marker({
-                    position: place.geometry.location,
-                    map,
-                    title: place.name,
-                  });
-                }
-
-                const phone = place.place_id
-                  ? await fetchPhoneNumber(service, place.place_id)
-                  : undefined;
-
-                return {
-                  name: place.name,
-                  specialty: keyword === "dentist" ? "Dental Office" : keyword,
-                  rating: place.rating || "N/A",
-                  address: place.vicinity || "Address unavailable",
-                  phone,
-                  placeId: place.place_id,
-                  mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                    place.name
-                  )}&query_place_id=${place.place_id}`,
-                  directionsUrl: `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-                    place.vicinity || place.name
-                  )}`,
-                  matchReason: getMatchReason(),
-                };
-              })
-            );
-
-            setResults(formatted);
-            setLoading(false);
-          }
-        );
       });
     } catch (err) {
       console.error(err);
-      alert("Google Maps could not load");
+      setStatusMessage("Google Maps could not load. Check that the Maps API key is set up in Vercel.");
       setLoading(false);
     }
+  };
+
+  const handleUseCurrentLocation = async () => {
+    if (!navigator.geolocation) {
+      setStatusMessage("Your browser does not support location lookup. Enter a ZIP code instead.");
+      return;
+    }
+
+    setLocating(true);
+    setStatusMessage("Allow location access to search dentists near you.");
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          await loadGoogleMaps();
+          const currentLocation = new window.google.maps.LatLng(
+            position.coords.latitude,
+            position.coords.longitude
+          );
+
+          setLocating(false);
+          setStatusMessage("");
+          searchDentistsNear({
+            label: "your current location",
+            location: currentLocation,
+          });
+        } catch (err) {
+          console.error(err);
+          setLocating(false);
+          setStatusMessage("Google Maps could not load. Check that the Maps API key is set up in Vercel.");
+        }
+      },
+      () => {
+        setLocating(false);
+        setStatusMessage("Location access was not allowed. You can still search by ZIP code.");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000,
+      }
+    );
   };
 
   useEffect(() => {
     if (zipFromURL) {
       setTimeout(() => {
-        handleSearch();
+        handleZipSearch();
       }, 500);
     }
   }, []);
@@ -258,23 +397,34 @@ export default function FindDentistPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="pt-32 pb-20">
+      <div className="pt-36 pb-20">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="mb-8">
-            <h1 className="text-5xl font-semibold text-gray-900 mb-2">
-              Find a Dentist
-            </h1>
-            <p className="text-gray-600 text-lg">
-              Search for dentists near you based on your ZIP code, insurance, and symptoms.
-            </p>
+          <div className="mb-8 grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
+            <div>
+              <h1 className="text-5xl font-semibold text-gray-900 mb-3">
+                Find a Dentist
+              </h1>
+              <p className="text-gray-600 text-lg max-w-3xl">
+                Use your location or ZIP code to pull up nearby dental offices on an interactive Google Map.
+              </p>
+            </div>
+            <button
+              onClick={handleUseCurrentLocation}
+              disabled={locating || loading}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-4 font-semibold text-white shadow-lg transition hover:bg-blue-700 disabled:bg-gray-300"
+            >
+              <LocateFixed className="h-5 w-5" />
+              {locating ? "Locating..." : "Use My Location"}
+            </button>
           </div>
 
           <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid gap-4 md:grid-cols-[1fr_1fr_auto]">
               <input
                 value={zip}
-                onChange={(e) => setZip(e.target.value)}
+                onChange={(e) => setZip(e.target.value.replace(/\D/g, "").slice(0, 5))}
                 placeholder="ZIP Code"
+                maxLength={5}
                 className="px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary"
               />
 
@@ -286,33 +436,36 @@ export default function FindDentistPage() {
               />
 
               <button
-                onClick={handleSearch}
-                disabled={loading}
-                className="bg-primary text-white rounded-xl px-6 py-3 font-medium hover:bg-blue-700 transition disabled:bg-gray-300"
+                onClick={handleZipSearch}
+                disabled={loading || locating}
+                className="bg-gray-900 text-white rounded-xl px-6 py-3 font-medium hover:bg-gray-800 transition disabled:bg-gray-300"
               >
-                {loading ? "Searching..." : "Search"}
+                {loading ? "Searching..." : "Search ZIP"}
               </button>
             </div>
 
-            <div className="flex items-center gap-3 mt-4">
-              <input
-                id="ratingOnly"
-                type="checkbox"
-                checked={ratingOnly}
-                onChange={(e) => setRatingOnly(e.target.checked)}
-              />
-              <label htmlFor="ratingOnly" className="text-sm text-gray-600">
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <label htmlFor="ratingOnly" className="flex items-center gap-3 text-sm text-gray-600">
+                <input
+                  id="ratingOnly"
+                  type="checkbox"
+                  checked={ratingOnly}
+                  onChange={(e) => setRatingOnly(e.target.checked)}
+                />
                 Show only dentists rated 4.5+
               </label>
-            </div>
-          </div>
 
-          {searched && (
-            <p className="text-sm text-gray-500 mb-4">
-              Showing dentists near {zip || "your area"}
-              {insurance ? ` who may accept ${insurance}` : ""}.
-            </p>
-          )}
+              <p className="text-sm text-gray-500">
+                Map pins are clickable, and the map can be dragged or zoomed.
+              </p>
+            </div>
+
+            {statusMessage && (
+              <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                {statusMessage}
+              </div>
+            )}
+          </div>
 
           {latestSymptoms.length > 0 && (
             <div className="bg-purple-50 border border-purple-100 rounded-2xl p-4 mb-6">
@@ -325,72 +478,111 @@ export default function FindDentistPage() {
             </div>
           )}
 
-          <div
-            ref={mapRef}
-            className="w-full h-96 rounded-2xl shadow-lg border border-gray-200 mb-8 bg-white"
-          />
-
-          {favorites.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                Saved Dentists
-              </h2>
-
-              <div className="space-y-3">
-                {favorites.map((dentist) => (
-                  <div
-                    key={dentist.placeId}
-                    className="flex items-center justify-between border border-gray-100 rounded-xl p-4"
-                  >
-                    <div>
-                      <p className="font-medium text-gray-900">{dentist.name}</p>
-                      <p className="text-sm text-gray-500">{dentist.address}</p>
-                    </div>
-
-                    <button
-                      onClick={() => toggleFavorite(dentist)}
-                      className="text-sm text-red-600 hover:text-red-700 font-medium"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-              </div>
+          <div className="grid gap-6 lg:grid-cols-[1.35fr_0.9fr]">
+            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg">
+              <div
+                ref={mapRef}
+                className="h-[520px] w-full bg-blue-50"
+              />
             </div>
-          )}
 
-          <div className="space-y-4">
-            {visibleResults.map((dentist, i) => {
-              const isSaved = favorites.some(
-                (fav) => fav.placeId === dentist.placeId
-              );
-
-              return (
-                <div
-                  key={i}
-                  className="bg-white p-6 rounded-2xl shadow hover:shadow-md transition"
-                >
-                  <div className="flex justify-between items-start gap-6">
+            <div className="space-y-4">
+              {searched && (
+                <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                  <div className="flex items-center justify-between gap-4">
                     <div>
-                      <h2 className="text-lg font-semibold">{dentist.name}</h2>
-                      <p className="text-gray-600">{dentist.specialty}</p>
-                      <p className="text-sm text-gray-500">{dentist.address}</p>
-
-                      {dentist.matchReason && (
-                        <p className="text-xs text-purple-600 mt-2 font-medium">
-                          {dentist.matchReason}
-                        </p>
-                      )}
-
-                      <p className="text-xs text-gray-400 mt-3">
-                        Insurance not verified — confirm with office
+                      <p className="text-sm font-semibold text-gray-900">
+                        Showing dentists near {searchLabel}
                       </p>
+                      <p className="text-sm text-gray-500">
+                        {insurance ? `Insurance not verified. Confirm ${insurance} with the office.` : "Insurance not verified. Confirm coverage with the office."}
+                      </p>
+                    </div>
+                    <MapPin className="h-5 w-5 text-primary" />
+                  </div>
+                </div>
+              )}
+
+              {favorites.length > 0 && (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                    Saved Dentists
+                  </h2>
+
+                  <div className="space-y-3">
+                    {favorites.map((dentist) => (
+                      <div
+                        key={dentist.placeId}
+                        className="flex items-center justify-between gap-4 border border-gray-100 rounded-xl p-4"
+                      >
+                        <div>
+                          <p className="font-medium text-gray-900">{dentist.name}</p>
+                          <p className="text-sm text-gray-500">{dentist.address}</p>
+                        </div>
+
+                        <button
+                          onClick={() => toggleFavorite(dentist)}
+                          className="text-sm text-red-600 hover:text-red-700 font-medium"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-4">
+                {visibleResults.map((dentist) => {
+                  const isSaved = favorites.some(
+                    (fav) => fav.placeId === dentist.placeId
+                  );
+                  const isActive = activePlaceId === dentist.placeId;
+
+                  return (
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      key={dentist.placeId}
+                      onClick={() => openDentistMarker(dentist)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          openDentistMarker(dentist);
+                        }
+                      }}
+                      className={`w-full bg-white p-5 rounded-2xl text-left shadow-sm transition hover:shadow-md border ${
+                        isActive ? "border-primary ring-2 ring-primary/10" : "border-gray-200"
+                      }`}
+                    >
+                      <div className="flex justify-between items-start gap-4">
+                        <div>
+                          <h2 className="text-lg font-semibold text-gray-900">{dentist.name}</h2>
+                          <p className="text-gray-600">{dentist.specialty}</p>
+                          <p className="text-sm text-gray-500">{dentist.address}</p>
+
+                          {dentist.matchReason && (
+                            <p className="text-xs text-purple-600 mt-2 font-medium">
+                              {dentist.matchReason}
+                            </p>
+                          )}
+
+                          <p className="text-xs text-gray-400 mt-3">
+                            Insurance not verified - confirm with office
+                          </p>
+                        </div>
+
+                        <div className="inline-flex items-center gap-1 text-yellow-500 font-medium whitespace-nowrap">
+                          <Star className="h-4 w-4 fill-current" />
+                          {dentist.rating}
+                        </div>
+                      </div>
 
                       <div className="flex flex-wrap gap-3 mt-4">
                         <a
                           href={dentist.mapsUrl}
                           target="_blank"
                           rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
                           className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition"
                         >
                           View on Maps
@@ -400,43 +592,46 @@ export default function FindDentistPage() {
                           href={dentist.directionsUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
                         >
+                          <Navigation className="h-4 w-4" />
                           Directions
                         </a>
 
                         {dentist.phone && (
                           <a
                             href={`tel:${dentist.phone}`}
-                            className="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition"
                           >
+                            <Phone className="h-4 w-4" />
                             Call Office
                           </a>
                         )}
 
-                        <button
-                          onClick={() => toggleFavorite(dentist)}
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFavorite(dentist);
+                          }}
                           className="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg text-sm font-medium hover:bg-yellow-200 transition"
                         >
                           {isSaved ? "Saved" : "Save"}
-                        </button>
+                        </span>
                       </div>
                     </div>
+                  );
+                })}
+              </div>
 
-                    <div className="text-yellow-500 font-medium whitespace-nowrap">
-                      ⭐ {dentist.rating}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+              {searched && !loading && visibleResults.length === 0 && (
+                <p className="text-gray-500 mt-6">
+                  No dentists found. Try another ZIP code or turn off the 4.5+ filter.
+                </p>
+              )}
+            </div>
           </div>
-
-          {searched && !loading && visibleResults.length === 0 && (
-            <p className="text-gray-500 mt-6">
-              No dentists found. Try another ZIP code or turn off the 4.5+ filter.
-            </p>
-          )}
         </div>
       </div>
     </div>
