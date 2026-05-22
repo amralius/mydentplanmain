@@ -7,6 +7,8 @@ type SavedDentist = {
   name: string;
   specialty?: string;
   rating?: number | 'N/A';
+  userRatings?: number;
+  distanceMiles?: number;
   address: string;
   phone?: string;
   placeId: string;
@@ -15,7 +17,7 @@ type SavedDentist = {
 };
 
 export default function DashboardPage() {
-  const { user, isAuthenticated, loading, savedEstimates, symptomHistory, updateProfile, deleteEstimate, deleteSymptomCheck, updateEstimateStatus, updateSymptomStatus } = useAuth();
+  const { user, loading, savedEstimates, symptomHistory, updateProfile, deleteEstimate, deleteSymptomCheck, updateEstimateStatus, updateSymptomStatus } = useAuth();
   const navigate = useNavigate();
 
   const [editingProfile, setEditingProfile] = useState(false);
@@ -23,6 +25,7 @@ export default function DashboardPage() {
   const [profileInsurance, setProfileInsurance] = useState('');
   const [profileZipCode, setProfileZipCode] = useState('');
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
+  const [memberSince, setMemberSince] = useState('');
   const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ isOpen: boolean; type: 'estimate' | 'symptom' | null; id: string | null }>({
     isOpen: false,
     type: null,
@@ -39,6 +42,22 @@ export default function DashboardPage() {
       setProfileInsurance(user.insurance || '');
       setProfileZipCode(user.zipCode || '');
     }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const storageKey = `mydentplan_member_since_${user.id}`;
+    const existing = localStorage.getItem(storageKey);
+
+    if (existing) {
+      setMemberSince(existing);
+      return;
+    }
+
+    const created = new Date().toISOString();
+    localStorage.setItem(storageKey, created);
+    setMemberSince(created);
   }, [user]);
 
 useEffect(() => {
@@ -110,15 +129,41 @@ useEffect(() => {
       .slice(0, 2);
   };
 
+  const formatRelativeDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const diffMs = Date.now() - date.getTime();
+    const diffDays = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+
+    if (diffDays === 0) return 'today';
+    if (diffDays === 1) return '1 day ago';
+    return `${diffDays} days ago`;
+  };
+
   const getHealthStatus = () => {
-    if (symptomHistory.length === 0) return { level: 'low', label: 'Low Concern', color: 'green' };
+    if (symptomHistory.length === 0) {
+      return {
+        level: 'low',
+        label: 'Low Concern',
+        color: 'green',
+        note: 'No symptom checks completed yet',
+      };
+    }
 
     const recentSymptom = symptomHistory[0];
     const symptomCount = recentSymptom.symptoms.length;
+    const symptoms = recentSymptom.symptoms.join(' ').toLowerCase();
+    const lastCheck = `Last symptom check: ${formatRelativeDate(recentSymptom.date)}`;
 
-    if (symptomCount >= 3) return { level: 'high', label: 'High Concern', color: 'red' };
-    if (symptomCount >= 2) return { level: 'moderate', label: 'Moderate Concern', color: 'yellow' };
-    return { level: 'low', label: 'Low Concern', color: 'green' };
+    if (symptoms.includes('swelling') || symptoms.includes('severe')) {
+      return { level: 'high', label: 'High Concern', color: 'red', note: 'Swelling or severe symptoms reported' };
+    }
+
+    if (symptoms.includes('cold') || symptoms.includes('persistent') || symptomCount >= 2) {
+      return { level: 'moderate', label: 'Moderate Concern', color: 'yellow', note: 'Persistent sensitivity or multiple symptoms detected' };
+    }
+
+    if (symptomCount >= 3) return { level: 'high', label: 'High Concern', color: 'red', note: lastCheck };
+    return { level: 'low', label: 'Low Concern', color: 'green', note: lastCheck };
   };
 
   const healthStatus = getHealthStatus();
@@ -142,7 +187,62 @@ useEffect(() => {
   }, [allHistory.length, allHistory, selectedHistoryId]);
 
   const selectedItem = allHistory.find(item => item.id === selectedHistoryId);
-  const currentPlan = selectedItem && selectedItem.type === 'symptom' ? selectedItem : null;
+
+  const getCurrentStatus = () => {
+    const latestSymptom = symptomHistory[0];
+
+    if (!latestSymptom) {
+      return {
+        title: 'Current Dental Status',
+        detail: 'No symptom checks completed yet. Start a symptom check or create a cost estimate.',
+        next: 'Start with a quick symptom check when something feels off.',
+      };
+    }
+
+    const symptoms = latestSymptom.symptoms.join(', ');
+    const teeth = latestSymptom.teeth?.length ? `, tooth ${latestSymptom.teeth.join(', ')}` : '';
+
+    return {
+      title: 'Current Concern',
+      detail: `${symptoms}${teeth}`,
+      next: 'Suggested next step: schedule an evaluation or review estimated treatment costs.',
+    };
+  };
+
+  const getNextSteps = () => {
+    const latestSymptom = symptomHistory[0];
+    const symptoms = latestSymptom?.symptoms.join(' ').toLowerCase() || '';
+
+    if (symptoms.includes('bleeding') || symptoms.includes('gum')) {
+      return [
+        { title: 'Schedule a cleaning', description: 'A professional cleaning can help address plaque and gum irritation.' },
+        { title: 'Improve home care routine', description: 'Track brushing, flossing, and gum symptoms over the next few days.' },
+        { title: 'Consult a dentist if symptoms persist', description: 'Bleeding gums should be checked if they continue or worsen.' },
+      ];
+    }
+
+    if (symptoms.includes('cold') || symptoms.includes('sensitivity') || symptoms.includes('sharp')) {
+      return [
+        { title: 'Schedule examination', description: 'Temperature sensitivity and sharp pain should be evaluated by a dentist.' },
+        { title: 'Consider x-rays', description: 'X-rays can help identify issues not visible during a visual exam.' },
+        { title: 'Review estimated treatment costs', description: 'Compare possible treatment ranges before booking care.' },
+      ];
+    }
+
+    return [
+      { title: 'Schedule examination', description: 'Book an appointment with a dentist for a professional evaluation.' },
+      { title: 'Review estimated treatment costs', description: 'Use your saved estimates to understand likely out-of-pocket cost.' },
+      { title: 'Find a nearby dentist', description: 'Compare saved offices, directions, and insurance fit.' },
+    ];
+  };
+
+  const currentStatus = getCurrentStatus();
+  const nextSteps = getNextSteps();
+  const sampleTimeline = [
+    { date: 'May 14', title: 'Completed symptom check', detail: 'Reviewed sensitivity and discomfort' },
+    { date: 'May 15', title: 'Estimated cleaning + x-rays', detail: 'Checked expected cost range' },
+    { date: 'May 17', title: 'Saved Smile Shack', detail: 'Added dentist to saved offices' },
+  ];
 
 if (loading) return null;
 if (!user) return null;
@@ -154,7 +254,7 @@ return (
           <div className="mb-8 flex items-center justify-between">
             <div>
               <h1 className="text-5xl font-semibold text-gray-900 mb-2">
-                My Dental Plan
+                My Dashboard
               </h1>
               <p className="text-xl text-gray-600">
                 Welcome back, {user.name}!
@@ -168,9 +268,24 @@ return (
             </button>
           </div>
 
+          <div className="mb-8 grid gap-4 md:grid-cols-3">
+            <div className="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
+              <div className="text-sm font-medium text-gray-500">Symptom checks</div>
+              <div className="mt-2 text-3xl font-semibold text-gray-900">{symptomHistory.length}</div>
+            </div>
+            <div className="rounded-2xl border border-green-100 bg-white p-5 shadow-sm">
+              <div className="text-sm font-medium text-gray-500">Saved estimates</div>
+              <div className="mt-2 text-3xl font-semibold text-gray-900">{savedEstimates.length}</div>
+            </div>
+            <div className="rounded-2xl border border-purple-100 bg-white p-5 shadow-sm">
+              <div className="text-sm font-medium text-gray-500">Saved dentists</div>
+              <div className="mt-2 text-3xl font-semibold text-gray-900">{savedDentists.length}</div>
+            </div>
+          </div>
+
           {/* Oral Health Status */}
           <div className="mb-8">
-            <div className={`inline-flex items-center gap-3 px-6 py-3 rounded-xl ${
+            <div className={`inline-flex flex-wrap items-center gap-3 px-6 py-3 rounded-xl ${
               healthStatus.color === 'green' ? 'bg-green-50 border-2 border-green-200' :
               healthStatus.color === 'yellow' ? 'bg-yellow-50 border-2 border-yellow-200' :
               'bg-red-50 border-2 border-red-200'
@@ -186,18 +301,19 @@ return (
                 healthStatus.color === 'yellow' ? 'text-yellow-700' :
                 'text-red-700'
               }`}>{healthStatus.label}</span>
+              <span className="text-sm text-gray-600">{healthStatus.note}</span>
             </div>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-8">
-              {/* Current Issue */}
+              {/* Current Status */}
               {selectedItem ? (
                 <div className="bg-white rounded-2xl shadow-lg p-8">
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-2xl font-semibold text-gray-900">
-                      Current Issue
+                      {selectedItem.type === 'symptom' ? 'Current Concern' : 'Current Estimate'}
                     </h2>
                     <select
                       value={selectedItem.status || 'not_started'}
@@ -272,7 +388,7 @@ return (
                       <div className="mt-6 p-4 bg-gray-50 rounded-xl">
                         <div className="text-sm font-medium text-gray-500 mb-1">Estimated Cost Range</div>
                         <div className="text-2xl font-semibold text-primary">
-                          ${selectedItem.totalMinCost.toLocaleString()} – ${selectedItem.totalMaxCost.toLocaleString()}
+                          ${selectedItem.totalMinCost.toLocaleString()} - ${selectedItem.totalMaxCost.toLocaleString()}
                         </div>
                       </div>
                     </>
@@ -281,13 +397,16 @@ return (
               ) : (
                 <div className="bg-white rounded-2xl shadow-lg p-8">
                   <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                    No Active Issue Selected
+                    {currentStatus.title}
                   </h2>
                   <p className="text-gray-600 mb-6">
-                    {allHistory.length === 0
-                      ? 'Start by checking your symptoms or creating a cost estimate.'
-                      : 'Select an item from your history timeline to view details.'}
+                    {allHistory.length === 0 ? currentStatus.detail : 'Select an item from your history timeline to view details.'}
                   </p>
+                  {allHistory.length === 0 && (
+                    <div className="mb-6 rounded-xl bg-blue-50 px-4 py-3 text-sm font-medium text-blue-800">
+                      {currentStatus.next}
+                    </div>
+                  )}
                   {allHistory.length === 0 && (
                     <div className="flex gap-4">
                       <button
@@ -310,44 +429,24 @@ return (
               {/* Next Steps */}
               <div className="bg-white rounded-2xl shadow-lg p-8">
                 <h2 className="text-2xl font-semibold text-gray-900 mb-6">
-                  Next Steps
+                  Recommended Next Steps
                 </h2>
                 <div className="space-y-4">
-                  <div className="flex items-start gap-4 p-4 rounded-xl hover:bg-gray-50 transition-all cursor-pointer">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
+                  {nextSteps.map((step, index) => (
+                    <div key={step.title} className="flex items-start gap-4 p-4 rounded-xl hover:bg-gray-50 transition-all">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        index === 0 ? 'bg-blue-100 text-primary' :
+                        index === 1 ? 'bg-purple-100 text-purple-600' :
+                        'bg-green-100 text-green-600'
+                      }`}>
+                        <span className="font-semibold">{index + 1}</span>
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900 mb-1">{step.title}</div>
+                        <div className="text-sm text-gray-600">{step.description}</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-medium text-gray-900 mb-1">Schedule a Dental Exam</div>
-                      <div className="text-sm text-gray-600">Book an appointment with a dentist for a professional evaluation</div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4 p-4 rounded-xl hover:bg-gray-50 transition-all cursor-pointer">
-                    <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900 mb-1">Get X-rays</div>
-                      <div className="text-sm text-gray-600">X-rays can help identify issues not visible during a visual exam</div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4 p-4 rounded-xl hover:bg-gray-50 transition-all cursor-pointer">
-                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900 mb-1">Consult a Dentist</div>
-                      <div className="text-sm text-gray-600">Discuss your symptoms and treatment options with a professional</div>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
 
@@ -395,7 +494,7 @@ return (
                               <h3 className="font-semibold text-gray-900">{dentist.name}</h3>
                               {dentist.rating && (
                                 <span className="rounded-full bg-yellow-50 px-2.5 py-1 text-xs font-medium text-yellow-700">
-                                  ★ {dentist.rating}
+                                  Rating {dentist.rating}{dentist.userRatings ? ` (${dentist.userRatings} reviews)` : ''}
                                 </span>
                               )}
                             </div>
@@ -403,6 +502,16 @@ return (
                               <p className="text-sm text-gray-600">{dentist.specialty}</p>
                             )}
                             <p className="text-sm text-gray-500">{dentist.address}</p>
+                            <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-500">
+                              {dentist.distanceMiles !== undefined && (
+                                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-blue-700">
+                                  {dentist.distanceMiles} miles away
+                                </span>
+                              )}
+                              <span className="rounded-full bg-green-50 px-2.5 py-1 text-green-700">
+                                {user.insurance ? `${user.insurance} accepted` : 'Insurance check needed'}
+                              </span>
+                            </div>
                             {dentist.phone && (
                               <p className="text-sm text-gray-500 mt-1">{dentist.phone}</p>
                             )}
@@ -459,11 +568,23 @@ return (
                 </h2>
 
                 {allHistory.length === 0 ? (
-                  <div className="text-center py-12">
-                    <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p className="text-gray-500">No history yet</p>
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-500">
+                      Your activity will appear here. Here is what a plan timeline can look like.
+                    </p>
+                    {sampleTimeline.map((item) => (
+                      <div key={item.title} className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4">
+                        <div className="flex items-start gap-4">
+                          <div className="rounded-full bg-white px-3 py-2 text-sm font-semibold text-gray-700">
+                            {item.date}
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-900">{item.title}</div>
+                            <div className="text-sm text-gray-600">{item.detail}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <div className="space-y-6">
@@ -555,7 +676,7 @@ return (
                                   </div>
                                 )}
                                 <div className="text-sm font-semibold text-primary">
-                                  ${item.totalMinCost.toLocaleString()} – ${item.totalMaxCost.toLocaleString()}
+                                  ${item.totalMinCost.toLocaleString()} - ${item.totalMaxCost.toLocaleString()}
                                 </div>
                               </div>
                             )}
@@ -706,6 +827,12 @@ return (
                       <div className="text-sm font-medium text-gray-500 mb-1">Email</div>
                       <div className="text-gray-900">{user.email}</div>
                     </div>
+                    {memberSince && (
+                      <div>
+                        <div className="text-sm font-medium text-gray-500 mb-1">Member Since</div>
+                        <div className="text-gray-900">{formatDate(memberSince)}</div>
+                      </div>
+                    )}
                     {user.insurance && (
                       <div>
                         <div className="text-sm font-medium text-gray-500 mb-1">Insurance Provider</div>
