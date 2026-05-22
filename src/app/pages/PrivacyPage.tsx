@@ -40,7 +40,7 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-2xl font-semibold text-gray-900 mb-3">Questions</h2>
               <p>
-                For privacy questions, contact support at <a href="mailto:support@mydentplan.com" className="text-primary font-medium hover:text-blue-700">support@mydentplan.com</a>.
+                For privacy questions, contact support at <a href="mailto:amralius@gmail.com" className="text-primary font-medium hover:text-blue-700">amralius@gmail.com</a>.
               </p>
             </section>
           </div>
