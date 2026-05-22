@@ -12,6 +12,26 @@ export default function FAQ() {
 
   const faqs = [
     {
+      question: "Is MyDentPlan free?",
+      answer: "Yes. MyDentPlan is free to use for checking symptoms, estimating costs, and finding nearby dentists."
+    },
+    {
+      question: "Does MyDentPlan diagnose dental conditions?",
+      answer: "No. MyDentPlan provides educational guidance only. It can help you understand possible next steps, but it does not diagnose conditions or replace a licensed dentist."
+    },
+    {
+      question: "Is my information private?",
+      answer: "We do not sell personal information. Your saved estimates, symptoms, and dentists are used to help you plan care inside MyDentPlan."
+    },
+    {
+      question: "Can I use MyDentPlan without insurance?",
+      answer: "Yes. You can choose the no-insurance option to see estimated self-pay costs and still use the symptom checker and dentist finder."
+    },
+    {
+      question: "How does symptom matching work?",
+      answer: "MyDentPlan uses your selected symptoms to suggest possible treatments and dentist types, such as a general dentist, endodontist, periodontist, or pediatric dentist."
+    },
+    {
       question: "How accurate are the cost estimates?",
       answer: "Our estimates are based on national averages and typical insurance coverage rates. Actual costs may vary depending on your specific plan, location, and dentist. We recommend verifying with your insurance provider for the most accurate information."
     },
@@ -67,17 +87,8 @@ export default function FAQ() {
   };
 
   return (
-    <section id="faq" className="py-24 bg-white">
+    <section id="faq" className="bg-white">
       <div className="max-w-3xl mx-auto px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-semibold text-gray-900 mb-4">
-            Frequently Asked Questions
-          </h2>
-          <p className="text-xl text-gray-600">
-            Everything you need to know about MyDentPlan
-          </p>
-        </div>
-
         <div className="space-y-4">
           {faqs.map((faq, index) => (
             <div
@@ -123,7 +134,7 @@ export default function FAQ() {
                 Send a ticket for account help, estimate questions, saved dentist issues, or dentist finder problems.
               </p>
               <div className="mt-5 rounded-xl bg-white p-4 text-sm text-gray-600">
-                Tickets are saved in Supabase so you can review them from your dashboard database.
+                Your support requests are saved so you can track them later.
               </div>
             </div>
 
@@ -188,7 +199,7 @@ export default function FAQ() {
 
               {ticketStatus === 'error' && (
                 <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  Could not send ticket yet. Make sure the support_tickets table exists in Supabase.
+                  Could not send your ticket yet. Please try again in a moment.
                 </div>
               )}
 

@@ -1,12 +1,13 @@
 import { Link } from 'react-router-dom';
+import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import FAQ from '../components/FAQ';
 
 export default function FAQPage() {
   return (
     <div className="min-h-screen bg-white">
-      <div className="pt-32 pb-20">
+      <div className="pt-32 pb-28">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
+          <div className="text-center mb-12">
             <h1 className="text-5xl font-semibold text-gray-900 mb-4">
               Frequently Asked Questions
             </h1>
@@ -17,31 +18,45 @@ export default function FAQPage() {
 
           <FAQ />
 
-          <div className="mt-20 pt-20 border-t border-gray-200">
+          <div className="mt-20 pt-16 border-t border-gray-200">
             <div className="max-w-3xl mx-auto">
               <h2 className="text-3xl font-semibold text-gray-900 mb-6 text-center">
                 About MyDentPlan
               </h2>
               <div className="space-y-6 text-gray-600 leading-relaxed">
-                <p>
-                  MyDentPlan is a free dental cost estimation tool designed to help patients make informed decisions about their dental care. We believe everyone deserves transparency when it comes to healthcare costs.
+                <p className="text-center">
+                  MyDentPlan is a free dental planning tool that helps patients understand possible care paths before a visit.
                 </p>
-                <p>
-                  Our platform helps you:
-                </p>
-                <ul className="list-disc list-inside space-y-2 ml-4">
-                  <li>Understand potential dental costs before visiting your dentist</li>
-                  <li>Check your symptoms and see recommended treatments</li>
-                  <li>Estimate what your insurance might cover</li>
-                  <li>Compare costs across different procedures</li>
-                  <li>Plan and budget for your dental care</li>
-                </ul>
-                <p>
-                  <strong>Important:</strong> MyDentPlan provides estimates only. We are not a dental practice and do not provide diagnoses or medical advice. All cost estimates are based on typical pricing and insurance coverage rates. Actual costs and coverage may vary. Always consult with a licensed dentist for diagnosis and treatment.
-                </p>
-                <p>
-                  Our estimates are based on aggregated data from dental practices across the United States and typical insurance coverage rates. We update our pricing data regularly to ensure accuracy.
-                </p>
+
+                <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                  <h3 className="mb-4 text-xl font-semibold text-gray-900">
+                    What MyDentPlan helps with
+                  </h3>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {[
+                      'Understand symptoms',
+                      'Estimate treatment costs',
+                      'Review insurance coverage',
+                      'Find nearby dentists',
+                      'Plan future care',
+                    ].map((item) => (
+                      <div key={item} className="flex items-center gap-3 text-gray-700">
+                        <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-green-600" />
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+                  <div className="mb-2 flex items-center gap-2 text-amber-900">
+                    <AlertTriangle className="h-5 w-5" />
+                    <h3 className="font-semibold">Important Disclaimer</h3>
+                  </div>
+                  <p className="text-amber-900">
+                    MyDentPlan provides educational information and estimates only. It does not provide diagnoses or replace professional dental care.
+                  </p>
+                </div>
               </div>
 
               <div className="mt-12 p-6 bg-blue-50 rounded-2xl text-center">
@@ -53,13 +68,13 @@ export default function FAQPage() {
                     to="/symptom-checker"
                     className="px-6 py-3 bg-primary text-white rounded-xl hover:bg-blue-700 transition-all font-medium"
                   >
-                    Start Symptom Checker
+                    Check Symptoms
                   </Link>
                   <Link
                     to="/calculator"
                     className="px-6 py-3 bg-white text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all font-medium"
                   >
-                    Use Cost Calculator
+                    Estimate Costs
                   </Link>
                 </div>
               </div>
