@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Calculator, ClipboardList, MapPin } from 'lucide-react';
+import { ArrowRight, Calculator, Check, ClipboardList, MapPin } from 'lucide-react';
 import logo from "../../imports/1-2.png";
 
 export default function Footer() {
@@ -17,9 +17,16 @@ export default function Footer() {
 
   const supportLinks = [
     { to: '/faq', label: 'FAQ' },
-    { to: '/faq#contact-support', label: 'Need Help?' },
+    { to: '/faq#contact-support', label: 'Contact Support' },
     { to: '/privacy', label: 'Privacy Policy' },
     { to: '/terms', label: 'Terms' },
+  ];
+
+  const trustItems = [
+    'Free to use',
+    'Privacy focused',
+    'Educational guidance',
+    'No credit card required',
   ];
 
   return (
@@ -42,27 +49,36 @@ export default function Footer() {
             <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
               <Link
                 to="/symptom-checker"
-                className="flex items-center justify-between rounded-xl bg-white px-4 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-blue-50"
+                className="group flex items-center justify-between rounded-xl bg-white px-4 py-3 text-sm font-semibold text-primary shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50 hover:brightness-105"
               >
                 <span className="flex items-center gap-2"><ClipboardList className="h-4 w-4" /> Check symptoms</span>
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
               <Link
                 to="/calculator"
-                className="flex items-center justify-between rounded-xl bg-blue-900/35 px-4 py-3 text-sm font-semibold text-white ring-1 ring-white/20 transition hover:bg-blue-900/50"
+                className="group flex items-center justify-between rounded-xl bg-blue-900/35 px-4 py-3 text-sm font-semibold text-white ring-1 ring-white/20 transition hover:-translate-y-0.5 hover:bg-blue-900/50 hover:brightness-110"
               >
                 <span className="flex items-center gap-2"><Calculator className="h-4 w-4" /> Estimate cost</span>
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
               <Link
                 to="/find-dentist"
-                className="flex items-center justify-between rounded-xl bg-blue-900/35 px-4 py-3 text-sm font-semibold text-white ring-1 ring-white/20 transition hover:bg-blue-900/50"
+                className="group flex items-center justify-between rounded-xl bg-blue-900/35 px-4 py-3 text-sm font-semibold text-white ring-1 ring-white/20 transition hover:-translate-y-0.5 hover:bg-blue-900/50 hover:brightness-110"
               >
                 <span className="flex items-center gap-2"><MapPin className="h-4 w-4" /> Find dentist</span>
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
             </div>
           </div>
+        </div>
+
+        <div className="mb-10 grid gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:grid-cols-2 lg:grid-cols-4">
+          {trustItems.map((item) => (
+            <div key={item} className="flex items-center gap-2 text-sm font-medium text-gray-300">
+              <Check className="h-4 w-4 text-green-400" />
+              {item}
+            </div>
+          ))}
         </div>
 
         <div className="grid gap-10 border-b border-white/10 pb-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
@@ -71,7 +87,7 @@ export default function Footer() {
               <img src={logo} alt="MyDentPlan" className="h-16 w-auto brightness-0 invert md:h-20" />
             </Link>
             <p className="max-w-sm text-sm leading-6 text-gray-400">
-              A simpler way to understand possible dental costs before you book care.
+              Understand symptoms, estimate costs, and plan your dental care with confidence.
             </p>
           </div>
 
@@ -117,19 +133,8 @@ export default function Footer() {
 
         <div className="flex flex-col gap-4 pt-8 text-sm text-gray-500 md:flex-row md:items-center md:justify-between">
           <p>
-            © 2026 MyDentPlan. Estimates are informational and are not a dental diagnosis or coverage guarantee.
+            © 2026 MyDentPlan. MyDentPlan provides educational information only and does not provide medical or dental diagnoses. Cost estimates may vary.
           </p>
-          <div className="flex flex-wrap gap-x-5 gap-y-2">
-            <Link to="/privacy" className="text-gray-400 transition-colors hover:text-white">
-              Privacy Policy
-            </Link>
-            <Link to="/terms" className="text-gray-400 transition-colors hover:text-white">
-              Terms
-            </Link>
-            <Link to="/faq#contact-support" className="text-gray-400 transition-colors hover:text-white">
-              Need Help?
-            </Link>
-          </div>
         </div>
       </div>
     </footer>
