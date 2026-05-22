@@ -688,41 +688,7 @@ return (
                 )}
               </div>
 
-              <div className="bg-white rounded-2xl shadow-lg p-8">
-
-  <div className="flex items-center justify-between mb-4">
-    <h2 className="text-2xl font-semibold text-gray-900">
-      Search Dentists
-    </h2>
-
-    <button
-      onClick={() => navigate(`/find-dentist?zip=${user.zipCode || ""}`)}
-      className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
-    >
-      Find Dentists
-    </button>
-  </div>
-
-  <p className="text-sm text-gray-500 mt-3">
-    Click “Find Dentists” to view nearby offices on a map and get directions.
-  </p>
-
-  <p className="text-gray-600 mb-4 mt-4">
-    Search real dentists near your ZIP code using Google Maps.
-  </p>
-
-  <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-    <p className="text-sm text-gray-700">
-      Your saved ZIP code: <span className="font-semibold">{user.zipCode || "Not added"}</span>
-    </p>
-    <p className="text-sm text-gray-700 mt-1">
-      Insurance: <span className="font-semibold">{user.insurance || "Not added"}</span>
-    </p>
-  </div>
-
-</div>
-
-</div> {/* END Main Content */}
+            </div> {/* END Main Content */}
 
             {/* Profile Sidebar */}
             <div className="lg:col-span-1">
